@@ -292,12 +292,6 @@
                                       (when-not (:use-single-thread @push-argmap (apply await pop-agents))) ;; SYNCHRONIZE
                                       (reset! delay-archive [])))
                                   (timer @push-argmap :report)
-                                  ;(println "\nUpdating Common Tagspace...")
-                                  ;(reset! global-common-tagspace (:tagspace best))
-                                  ;(println (pr-str @global-common-tagspace))
-                                  ;(swap! push-argmap assoc :atom-generators (into @global-initial-atom-generators (flatten (vals @global-common-tagspace))))
-                                  ;(prn "Updated Atoms" (:atom-generators @push-argmap))
-                                  ;(println "\nProducing offspring...") (flush)
                                   (produce-new-offspring pop-agents
                                                          child-agents
                                                          rand-gens
