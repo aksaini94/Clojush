@@ -2,7 +2,9 @@
   (:use [clojush util random individual globals interpreter translate pushstate]
         [clojush.instructions tag gtm]
         [clojush.pushgp.selection.selection]
-        [clojure.math.numeric-tower])
+        [clojush.pushgp.selection.lexicase]
+        [clojure.math.numeric-tower]
+        clojure.data)
   (:import (org.apache.commons.math3.stat.inference TTest))
   (:require [clojure.string :as string]))
 
@@ -612,26 +614,37 @@ given by uniform-deletion-rate.
   Works with Plushy genomes."
   [ind {:keys [uniform-addition-and-deletion-rate maintain-ancestors atom-generators] 
         :as argmap}]
-  (let [addition-rate (random-element-or-identity-if-not-a-collection uniform-addition-and-deletion-rate)
+  (let [modified-atom-generators (if (not-empty (drop-last (:improvement-by-mutation ind)))
+                                   (let [selected (fixed-order-lex-sel (drop-last (:improvement-by-mutation ind)) (map first (sort-by second > (map-indexed vector (:errors ind) ))))]
+                                     (into (remove (set (:deletions selected)) atom-generators) (:additions selected))
+                                     )
+                                   atom-generators)
+        addition-rate (random-element-or-identity-if-not-a-collection uniform-addition-and-deletion-rate)
         deletion-rate (if (zero? addition-rate)
                         0
                         (/ 1 (+ (/ 1 addition-rate) 1)))
+        after-addition (mapv #(if (< (lrand) addition-rate)
+                                [% (random-genome-gene
+                                     modified-atom-generators argmap)]
+                                [%])
+                             (:genome ind))
+        additions (map #(second %) (filter #(not= (count %) 1) after-addition))
         after-addition (vec (apply concat
-                                   (mapv #(if (< (lrand) addition-rate)
-                                            (lshuffle [% 
-                                                       (random-genome-gene
-                                                         atom-generators argmap)])
-                                            [%])
-                                         (:genome ind))))
+                                   (mapv lshuffle after-addition)
+                                   ))
+        after-deletion (mapv #(if (< (lrand) deletion-rate) nil %)
+                             after-addition)
         new-genome (vec (filter identity
-                                (mapv #(if (< (lrand) deletion-rate) nil %)
-                                      after-addition)))]
+                                after-deletion))
+        deletions (filter identity (first (diff after-addition after-deletion)))]
     (make-individual :genome new-genome
                      :history (:history ind)
                      :grain-size (compute-grain-size new-genome ind argmap)
                      :ancestors (if maintain-ancestors
                                   (cons (:genome ind) (:ancestors ind))
-                                  (:ancestors ind)))))
+                                  (:ancestors ind))
+                     :improvement-by-mutation (cons {:additions (map #(:instruction %) additions) :deletions (map #(:instruction %) deletions)} (:improvement-by-mutation ind) ) ; only adding the additions and deletions here, will update the difference in errors in the main file
+                     )))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; uniform combination

@@ -32,3 +32,19 @@
         (recur (filter #(= (nth (:errors %) (first cases)) min-err-for-case)
                        survivors)
                (rest cases))))))
+
+
+(defn fixed-order-lex-sel
+  "Returns an individual that does the best on the fitness cases when considered one at a
+  time in random order. The argument order should be list of numbers from 0 to n-1, where n is the total number of test cases."
+  [pop order]
+  (loop [survivors pop
+         cases order]
+    (if (or (empty? cases)
+            (empty? (rest survivors)))
+      (rand-nth survivors)
+      (let [min-err-for-case (apply min (map #(nth % (first cases))
+                                             (map :errors survivors)))]
+        (recur (filter #(= (nth (:errors %) (first cases)) min-err-for-case)
+                       survivors)
+               (rest cases))))))
