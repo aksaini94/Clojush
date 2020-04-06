@@ -90,16 +90,16 @@
             ;                 [])
             ; _ (prn "Before:")
             ; _ (prn @local-tagspace)
-            reuse-metric (atom ())
-            repetition-metric (atom ())
+            ;reuse-metric (atom ())
+            ;repetition-metric (atom ())
             cases (case data-cases
                     :train train-cases
                     :simplify train-cases
                     :test test-cases
                     data-cases)
-            errors (let [ran (if (and (not= data-cases :test) (not= data-cases :simplify))
-                               (rand-nth cases)
-                               nil)
+            errors (let [ran nil                            ; (if (and (not= data-cases :test) (not= data-cases :simplify))
+                         ;(rand-nth cases)
+                         ; nil)
                          ]
                      (doall
                       (for [[[input1 input2 input3] correct-output] cases]
@@ -143,7 +143,11 @@
             ]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors :reuse-info @reuse-metric :repetition-info @repetition-metric); :tagspace @local-tagspace)
+          (assoc individual :behaviors @behavior :errors errors :reuse-info @reuse-metric :repetition-info @repetition-metric :improvement-by-mutation (let [old-seq (:improvement-by-mutation individual)]
+                                                                                                                                                         (if (not-empty old-seq)
+                                                                                                                                                           (cons (assoc (first old-seq) :errors (mapv - (vec errors) (first (:history individual)))) (rest old-seq)  )
+                                                                                                                                                           )
+                                                                                                                                                         ))
           )))))
   
 (defn get-compare-string-lengths-train-and-test
@@ -182,6 +186,9 @@
     (println ";;------------------------------")
     (println "Outputs of best individual on training cases:")
     (error-function best :train true)
+    (if (= generation 300)                                    ; printing history of the best individual for the lst generation, in case the run leads to FAILURE
+      (do (println "History: " (:history best))
+          (println "Improvement by mutation sequence" (pr-str (:improvement-by-mutation best)))))
     (println ";;******************************")
     )) ;; To do validation, could have this function return an altered best individual
        ;; with total-error > 0 if it had error of zero on train but not on validation
@@ -198,7 +205,7 @@
    :evalpush-limit 600
    :population-size 1000
    :max-generations 600
-   :parent-selection :downsampled-lexicase
+   :parent-selection :lexicase
    :sub-training-cases '()
    :downsample-factor 0.5
    :training-cases (first compare-string-lengths-train-and-test-cases)

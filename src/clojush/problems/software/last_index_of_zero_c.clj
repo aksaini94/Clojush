@@ -273,10 +273,10 @@
    :report-simplifications 0
    :final-report-simplifications 5000
    :max-error 1000000
-   :meta-error-categories [:tag-usage]
-   :use-single-thread true
+   ;:meta-error-categories [:tag-usage]
+   ;:use-single-thread true
    :print-history true
-   :use-lineage-tagspaces false
+   ;:use-lineage-tagspaces false
    :pop-when-tagging false
    ;:tag-enrichment-types [:integer :boolean :vector_integer :exec]
    ;:tag-enrichment 50

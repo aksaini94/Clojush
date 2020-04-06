@@ -141,9 +141,8 @@
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
           (assoc individual :behaviors @behavior :errors errors :reuse-info @reuse-metric :repetition-info @repetition-metric :tagspace @local-tagspace :improvement-by-mutation (let [old-seq (:improvement-by-mutation individual)]
-                                                                                                                                                                                   (if (:history individual)
+                                                                                                                                                                                   (if (not-empty old-seq)
                                                                                                                                                                                      (cons (assoc (first old-seq) :errors (mapv - (vec errors) (first (:history individual)))) (rest old-seq)  )
-                                                                                                                                                                                     ; (cons (conj (first old-seq)  (mapv - (vec errors) (first (:history individual)))) (rest old-seq)  )
                                                                                                                                                                                      )
                                                                                                                                                                                    ))
           )))))
@@ -185,6 +184,8 @@
     (println ";;------------------------------")
     (println "Outputs of best individual on training cases:")
     (error-function best :train true)
+    (if (= generation 300)                                    ; printing history of the best individual for the lst generation, in case the run leads to FAILURE
+      (println "History: " (:history best)))
     (println ";;******************************")
     )) ;; To do validation, could have this function return an altered best individual
        ;; with total-error > 0 if it had error of zero on train but not on validation

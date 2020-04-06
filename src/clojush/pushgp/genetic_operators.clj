@@ -615,9 +615,11 @@ given by uniform-deletion-rate.
   [ind {:keys [uniform-addition-and-deletion-rate maintain-ancestors atom-generators] 
         :as argmap}]
   (let [modified-atom-generators (if (not-empty (drop-last (:improvement-by-mutation ind)))
-                                   (let [selected (fixed-order-lex-sel (drop-last (:improvement-by-mutation ind)) (map first (sort-by second > (map-indexed vector (:errors ind) ))))]
-                                     (into (remove (set (:deletions selected)) atom-generators) (:additions selected))
-                                     )
+                                   (let [selected (fixed-order-lex-sel (drop-last (:improvement-by-mutation ind)) (map first (sort-by second > (map-indexed vector (:errors ind) ))))
+                                         new-atom-generators (into (remove (set (:deletions selected)) atom-generators) (:additions selected))]
+                                     (if (empty? new-atom-generators)
+                                       atom-generators
+                                       new-atom-generators))
                                    atom-generators)
         addition-rate (random-element-or-identity-if-not-a-collection uniform-addition-and-deletion-rate)
         deletion-rate (if (zero? addition-rate)

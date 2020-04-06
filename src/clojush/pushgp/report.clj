@@ -423,7 +423,7 @@
     (println "Best program:" (pr-str (not-lazy (:program best))))
     (println "Tagspace:" (pr-str (:tagspace best)))
     (println "Global Tagspace:" (pr-str @global-common-tagspace))
-    (println "Improvement by mutation sequence" (pr-str (:improvement-by-mutation best)))
+    ;(println "Improvement by mutation sequence" (pr-str (:improvement-by-mutation best)))
     ;
     ;(println "Reuse for all test cases is" (pr-str (:reuse-info best)))
     ;(println "Repetition for all test cases is" (pr-str (:repetition-info best)))
@@ -712,6 +712,7 @@
     (prn (:ancestors best)))
   (println "Tagspace:" (pr-str (:tagspace best)))
   (println "Global Tagspace:" (pr-str @global-common-tagspace))
+  (println "Improvement by mutation sequence" (pr-str (:improvement-by-mutation best)))
   (let [simplified-best (auto-simplify best error-function final-report-simplifications true 500)]
     (println "\n;;******************************")
     (println ";; Problem-Specific Report of Simplified Solution")
