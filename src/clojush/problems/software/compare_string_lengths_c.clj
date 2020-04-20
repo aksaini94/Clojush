@@ -90,8 +90,8 @@
             ;                 [])
             ; _ (prn "Before:")
             ; _ (prn @local-tagspace)
-            ;reuse-metric (atom ())
-            ;repetition-metric (atom ())
+            reuse-metric (atom ())
+            repetition-metric (atom ())
             cases (case data-cases
                     :train train-cases
                     :simplify train-cases
