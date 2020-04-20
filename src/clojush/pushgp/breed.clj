@@ -23,6 +23,7 @@
    :uniform-deletion {:fn uniform-deletion :parents 1 :works-with-plushy true :works-with-plush true}
    :uniform-addition {:fn uniform-addition :parents 1 :works-with-plushy true :works-with-plush true}
    :uniform-addition-and-deletion {:fn uniform-addition-and-deletion :parents 1 :works-with-plushy true :works-with-plush true}
+   :uniform-duplication-and-deletion {:fn uniform-duplication-and-deletion :parents 1 :works-with-plushy true :works-with-plush true}
    :uniform-combination {:fn uniform-combination :parents 2 :works-with-plushy true :works-with-plush true}
    :uniform-combination-and-deletion {:fn uniform-combination-and-deletion :parents 2 :works-with-plushy true :works-with-plush true}
    :genesis {:fn genesis :parents 0 :works-with-plushy true :works-with-plush true} ;; the parent will be ignored

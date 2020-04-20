@@ -633,6 +633,34 @@ given by uniform-deletion-rate.
                                   (cons (:genome ind) (:ancestors ind))
                                   (:ancestors ind)))))
 
+(defn uniform-duplication-and-deletion
+  "Returns the individual after two passes of mutation. In the first pass, each element of
+  its genome may possibly be preceded or followed by a new gene. In the second pass, each
+  element of the genome may possibly be deleted. Probabilities are given by
+  uniform-addition-and-deletion-rate.
+  Works with Plushy genomes."
+  [ind {:keys [uniform-addition-and-deletion-rate maintain-ancestors atom-generators]
+        :as argmap}]
+  (let [addition-rate (random-element-or-identity-if-not-a-collection uniform-addition-and-deletion-rate)
+        deletion-rate (if (zero? addition-rate)
+                        0
+                        (/ 1 (+ (/ 1 addition-rate) 1)))
+        after-addition (vec (apply concat
+                                   (mapv #(if (< (lrand) addition-rate)
+                                            (lshuffle [%
+                                                       (rand-nth (:genome ind))])
+                                            [%])
+                                         (:genome ind))))
+        new-genome (vec (filter identity
+                                (mapv #(if (< (lrand) deletion-rate) nil %)
+                                      after-addition)))]
+    (make-individual :genome new-genome
+                     :history (:history ind)
+                     :grain-size (compute-grain-size new-genome ind argmap)
+                     :ancestors (if maintain-ancestors
+                                  (cons (:genome ind) (:ancestors ind))
+                                  (:ancestors ind)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; uniform combination
 

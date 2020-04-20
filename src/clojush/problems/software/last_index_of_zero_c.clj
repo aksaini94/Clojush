@@ -24,10 +24,10 @@
            ^{:generator-label "Random numbers in the range [-50,50]"}
            (fn [] (- (lrand-int 101) 50))
             ;;; end ERCs
-           (tag-instruction-erc [:integer :boolean :vector_integer :exec] 1000)
-           (tagged-instruction-erc 1000)
-           (untag-instruction-erc 1000)
-           (registered-for-type "return_")
+           ;(tag-instruction-erc [:integer :boolean :vector_integer :exec] 1000)
+           ;(tagged-instruction-erc 1000)
+           ;(untag-instruction-erc 1000)
+           ;(registered-for-type "return_")
             ;;; end tag ERCs
            'in1
             ;;; end input instructions
@@ -96,106 +96,76 @@
            reuse-metric (atom ())                           ;the lenght will be equal to the number of test cases
            repetition-metric (atom ())
            behavior (atom '())
-           local-tagspace (case data-cases
-                            :train                          ; (if global-use-lineage-tagspaces
-                            ;(atom (:tagspace individual))
-                            (atom @global-common-tagspace)
-                            ; )
-                            :simplify (atom (:tagspace individual)) ; during simplification, the tagspace should not be changed.
-                            :test (atom (:tagspace individual))
-                            ; (if global-use-lineage-tagspaces
-                            ; (atom (:tagspace individual))
-                              (atom @global-common-tagspace)
-                              ;)
-                              )
-           update? (atom false)
+           ;local-tagspace (case data-cases
+           ;  :train                                         ; (if global-use-lineage-tagspaces
+           ;(atom (:tagspace individual))
+           ;  (atom @global-common-tagspace)
+           ; )
+           ;  :simplify (atom (:tagspace individual))        ; during simplification, the tagspace should not be changed.
+           ;  :test (atom (:tagspace individual))
+           ; (if global-use-lineage-tagspaces
+           ; (atom (:tagspace individual))
+           ; (atom @global-common-tagspace)
+           ;)
+           ;)
+           ;update? (atom false)
            cases (case data-cases
-                                    :train train-cases
-                                    :simplify train-cases
-                                    :test test-cases
-                                    data-cases)
-           errors (let [ran nil            ; (if (and (not= data-cases :test) (not= data-cases :simplify))
-                                         ;(rand-nth cases)
-                                         ; nil)
-                                         ]
-                                     (doall
-                                       (for [[input correct-output] cases]
-                                         (let [final-state (if (= [input correct-output] ran)
-                                                             (run-push (:program
-                                                                         ;(auto-simplify-lite individual
-                                                                         ;                    (fn [inp] (liz/make-last-index-of-zero-error-function-from-cases inp nil)) ; error-function per test case
-                                                                         ;                    75
-                                                                         ;                    (first liz/last-index-of-zero-train-and-test-cases) ; cases
-                                                                         ;                    false 100)
-                                                                         individual
-                                                                         )
-                                                                       (push-item input :input
-                                                                                  (assoc (make-push-state) :calculate-mod-metrics (= [input correct-output] ran))
-                                                                                  ))
-                                                             (run-push (:program individual)
-                                                                       (->> (assoc (make-push-state) :tag @local-tagspace)
-                                                                            ;(make-push-state)
-                                                                            (push-item input :input))))
-                                               result (top-item :integer final-state)
-                                               _ (if (and (not= data-cases :test) (not= data-cases :simplify))
-                                                   (reset! local-tagspace (get final-state :tag)))
-                                               ]
-                                           ; (when print-outputs
-                                           ; (println (format "Correct output: %2d | Program output: %s"
-                                           ;                correct-output
-                                           ;                 (str result))))
-                                           ;(doseq [[k v] (:max-stack-depth final-state)] (swap! stacks-depth update k #(max % v)))
-                                           ; (if (= [input correct-output] ran)
-                                           ; (let [metrics (mod-metrics (:trace final-state) (:trace_id final-state))]
-                                           ; (do
-                                           ;  (swap! reuse-metric conj (first metrics))
-                                           ;  (swap! repetition-metric conj (last metrics)))))
+                   :train train-cases
+                   :simplify train-cases
+                   :test test-cases
+                   data-cases)
+           errors (let [ran nil                             ; (if (and (not= data-cases :test) (not= data-cases :simplify))
+                        ;(rand-nth cases)
+                        ; nil)
+                        ]
+                    (doall
+                      (for [[input correct-output] cases]
+                        (let [final-state (run-push (:program individual)
+                                                    (->> (make-push-state)
+                                                         (push-item input :input)))
+                              result (top-item :integer final-state)
+                              ]
+                          ; (when print-outputs
+                          ; (println (format "Correct output: %2d | Program output: %s"
+                          ;                correct-output
+                          ;                 (str result))))
+                          ;(doseq [[k v] (:max-stack-depth final-state)] (swap! stacks-depth update k #(max % v)))
+                          ; (if (= [input correct-output] ran)
+                          ; (let [metrics (mod-metrics (:trace final-state) (:trace_id final-state))]
+                          ; (do
+                          ;  (swap! reuse-metric conj (first metrics))
+                          ;  (swap! repetition-metric conj (last metrics)))))
 
-                                           ; Record the behavior
-                                           (swap! behavior conj result)
-                                           ; Error is absolute distance from correct index
-                                           (if (number? result)
-                                             (abs (- result correct-output)) ; distance from correct integer
-                                             1000000)       ; penalty for no return value
-                                           ))))
-                            errors-wct (comment             ;doall
-                                         (for [[input correct-output] cases]
-                                           (let [final-state (run-push (:program individual) ;'(tagged_0)
-                                                                       (->> (make-push-state)
-                                                                            ;(assoc (make-push-state) :tag @local-tagspace)
-                                                                            (push-item input :input)))
-                                                 result (top-item :integer final-state)
-                                                 ]
-                                             ; Record the behavior
-                                             ;(swap! behavior conj result)
-                                             ; Error is absolute distance from correct index
-                                             (if (number? result)
-                                               (abs (- result correct-output)) ; distance from correct integer
-                                               1000000)     ; penalty for no return value
-                                             )))
-                            _ (if (and (not= data-cases :test) (not= data-cases :simplify))
-                                (if (let [x (vec errors)
-                                          ; _ (prn x)
-                                          y (first (:history individual))
-                                          ;y (vec errors-wct)
-                                          ; _ (prn y)
-                                          ]
-                                      (if (nil? y)
-                                        true
-                                        ;(some? (some true? (map #(< %1 %2) x y))))) ;child is better than mom on at least one test case; can be worse on others
-                                        (every? true? (map #(<= %1 %2) x y))
-                                        ;(not= x y)
-                                        ;true
-                                        ))
-                                  (do
-                                    (reset! global-common-tagspace @local-tagspace)
-                                    ; (reset! update? true)
-                                    ; (prn @global-common-tagspace)
-                                    )))
+                          ; Record the behavior
+                          (swap! behavior conj result)
+                          ; Error is absolute distance from correct index
+                          (if (number? result)
+                            (abs (- result correct-output)) ; distance from correct integer
+                            1000000)                        ; penalty for no return value
+                          ))))
+           ; _ (if (and (not= data-cases :test) (not= data-cases :simplify))
+           ; (if (let [x (vec errors)
+           ; _ (prn x)
+           ;          y (first (:history individual))
+           ;y (vec errors-wct)
+           ; _ (prn y)
+           ;]
+           ; (if (nil? y)
+           ;  true
+           ;(some? (some true? (map #(< %1 %2) x y))))) ;child is better than mom on at least one test case; can be worse on others
+           ;  (every? true? (map #(<= %1 %2) x y))
+           ;(not= x y)
+           ;true
+           ;))
+           ; (do
+           ;  (reset! global-common-tagspace @local-tagspace)
+           ; (reset! update? true)
+           ; (prn @global-common-tagspace)
+           ;)))
            ]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors :reuse-info @reuse-metric :repetition-info @repetition-metric :tagspace @local-tagspace ; (let [ts (:tagspace individual)]
+          (assoc individual :behaviors @behavior :errors errors :reuse-info @reuse-metric :repetition-info @repetition-metric ; (let [ts (:tagspace individual)]
                             ; (if true                        ;update?
                             ;@local-tagspace
                             ;  ts))
@@ -258,7 +228,8 @@
    :parent-selection :lexicase
    :downsample-factor 0.5
    :training-cases (first last-index-of-zero-train-and-test-cases)
-   :genetic-operator-probabilities {:uniform-addition-and-deletion 1}
+   :genetic-operator-probabilities {:uniform-addition-and-deletion 0.5
+                                    :uniform-duplication-and-deletion 0.5}
    :uniform-addition-and-deletion-rate 0.09
    ;:genetic-operator-probabilities {:alternation 0.2
    ;                                 :uniform-mutation 0.2
@@ -273,11 +244,11 @@
    :report-simplifications 0
    :final-report-simplifications 5000
    :max-error 1000000
-   :meta-error-categories [:tag-usage]
-   :use-single-thread true
-   :print-history true
-   :use-lineage-tagspaces false
-   :pop-when-tagging false
+   ;:meta-error-categories [:tag-usage]
+   ;:use-single-thread true
+   ;:print-history true
+   ;:use-lineage-tagspaces false
+   ;:pop-when-tagging false
    ;:tag-enrichment-types [:integer :boolean :vector_integer :exec]
    ;:tag-enrichment 50
    })
