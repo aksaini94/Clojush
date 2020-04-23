@@ -228,9 +228,9 @@
    :parent-selection :lexicase
    :downsample-factor 0.5
    :training-cases (first last-index-of-zero-train-and-test-cases)
-   :genetic-operator-probabilities {:uniform-addition-and-deletion 0.5
-                                    :uniform-duplication-and-deletion 0.5}
+   :genetic-operator-probabilities {:modified-uniform-addition-and-deletion 1}
    :uniform-addition-and-deletion-rate 0.09
+   :add-instruction-from-other-rate 0.2
    ;:genetic-operator-probabilities {:alternation 0.2
    ;                                 :uniform-mutation 0.2
    ;                                 :uniform-close-mutation 0.1

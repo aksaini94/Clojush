@@ -172,6 +172,10 @@
           ;; The probability, per gene, for additions in the first phase, and deletions in the second
           ;; phase (calculated for size-neutrality), of uniform-addition-and-deletion.
 
+          :add-instruction-from-other-rate 0
+          ;; The probability that a given addition during UMAD will happen using gene from a another individual selected
+          ;; using the given selection method. A value of 0 means normal UMAD.
+
          :uniform-combination-rate 0.01
           ;; The probability, per gene, for combinations during uniform-combination
 
