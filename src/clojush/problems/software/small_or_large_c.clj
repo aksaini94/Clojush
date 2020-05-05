@@ -72,10 +72,10 @@
             ;;; end constants
            (fn [] (- (lrand-int 20001) 10000)) ;Integer ERC [-10000,10000]
             ;;; end ERCs
-            (tag-instruction-erc [:integer :boolean :exec :string] 500)
-            (tagged-instruction-erc 500)
-            (untag-instruction-erc 500)
-           (registered-for-type "return_")
+           ;(tag-instruction-erc [:integer :boolean :exec :string] 500)
+           ;(tagged-instruction-erc 500)
+           ; (untag-instruction-erc 500)
+           ;(registered-for-type "return_")
             ;;; end tag ERCs
            'in1
             ;;; end input instructions
@@ -118,21 +118,21 @@
     ([individual data-cases] ;; data-cases should be :train or :test
      (the-actual-small-or-large-error-function individual data-cases false))
     ([individual data-cases print-outputs]
-      (let [behavior (atom '())
-            local-tagspace (case data-cases
-                             :train (atom @global-common-tagspace)
-                             :simplify (atom (:tagspace individual)) ; during simplification and testing, the tagspace should not be changed.
-                             :test (atom (:tagspace individual))
-                             (atom @global-common-tagspace))
-            reuse-metric (atom ())       
-            repetition-metric (atom ())            
-            cases (case data-cases
-                    :train train-cases
-                    :simplify train-cases
-                    :test test-cases
-                    data-cases)
-            errors (let [ran nil] ;(rand-nth cases)]
-                     (doall
+     (let [behavior (atom '())
+           ;local-tagspace (case data-cases
+           ;  :train (atom @global-common-tagspace)
+           ;  :simplify (atom (:tagspace individual))       ; during simplification and testing, the tagspace should not be changed.
+           ;  :test (atom (:tagspace individual))
+           ;  (atom @global-common-tagspace))
+           reuse-metric (atom ())
+           repetition-metric (atom ())
+           cases (case data-cases
+                   :train train-cases
+                   :simplify train-cases
+                   :test test-cases
+                   data-cases)
+           errors (let [ran nil]                            ;(rand-nth cases)]
+                    (doall
                       (for [[input1 correct-output] cases]
                         (let [final-state (if (= [input1 correct-output] ran)
                                             (run-push (:program (auto-simplify-lite individual
@@ -144,49 +144,47 @@
                                                            (push-item input1 :input)
                                                            (push-item "" :output)))
                                             (run-push (:program individual)
-                                                      (->> (assoc (make-push-state) :tag @local-tagspace)
+                                                      (->> (make-push-state)
                                                            (push-item input1 :input)
                                                            (push-item "" :output)))
                                             )
                               result (stack-ref :output 0 final-state)
-                              _ (if (not= data-cases :test)
-                                    (reset! local-tagspace (get final-state :tag)))
                               ]
                           (when print-outputs
                             (println (format "| Correct output: %s\n| Program output: %s\n" (pr-str correct-output) (pr-str result))))
-                          
+
                           (if (= [input1 correct-output] ran)
                             (let [metrics (mod-metrics (:trace final-state) (:trace_id final-state))]
                               (do
                                 (swap! reuse-metric conj (first metrics))
                                 (swap! repetition-metric conj (last metrics)))))
 
-                        ; Record the behavior
+                          ; Record the behavior
                           (swap! behavior conj result)
-                         ; Error is Levenshtein distance of printed strings
+                          ; Error is Levenshtein distance of printed strings
                           (levenshtein-distance correct-output result)))))
-            _ (if (and (not= data-cases :test) (not= data-cases :simplify)) ;(= data-cases :train)
-                (if (let [x (vec errors)
-                                       ;_ (prn x)
-                          y (first (:history individual))
-                                       ;_ (prn y)
-                          ]
-                      (if (nil? y)
-                        true
-                        ; (some? (some true? (map #(< %1 %2) x y))))) ; child is better than mom on at least one test case; can be worse on others
-                        ;(every? true? (map #(<= %1 %2) x y))
-                        true
-                        ))
-                  (do
-                    (uniform-segment-addition-to-culture individual local-tagspace 0.5 0.1)
-                    (merge-tagspaces global-common-tagspace global-common-tagspace-fitness local-tagspace (apply + errors))
-                    ;(reset! global-common-tagspace @local-tagspace)
-                               ;(prn @global-common-tagspace)
-                    )))
-            ]
+           ;_ (if (and (not= data-cases :test) (not= data-cases :simplify)) ;(= data-cases :train)
+           ; (if (let [x (vec errors)
+           ;          ;_ (prn x)
+           ;          y (first (:history individual))
+           ;          ;_ (prn y)
+           ;]
+           ; (if (nil? y)
+           ;  true
+           ; (some? (some true? (map #(< %1 %2) x y))))) ; child is better than mom on at least one test case; can be worse on others
+           ;(every? true? (map #(<= %1 %2) x y))
+           ;  true
+           ;))
+           ; (do
+           ;  (uniform-segment-addition-to-culture individual local-tagspace 0.5 0.1)
+           ;  (merge-tagspaces global-common-tagspace global-common-tagspace-fitness local-tagspace (apply + errors))
+           ;(reset! global-common-tagspace @local-tagspace)
+           ;(prn @global-common-tagspace)
+           ;)))
+           ]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors :reuse-info @reuse-metric :repetition-info @repetition-metric :tagspace @local-tagspace)
+          (assoc individual :behaviors @behavior :errors errors :reuse-info @reuse-metric :repetition-info @repetition-metric)
           )))))
 
 (defn get-small-or-large-train-and-test
@@ -242,8 +240,10 @@
    :population-size 1000
    :max-generations 300
    :parent-selection :lexicase
-   :genetic-operator-probabilities {:uniform-addition-and-deletion 1}
+   :genetic-operator-probabilities {[:uniform-addition-and-deletion :loopification]  0.75
+                                    :uniform-addition-and-deletion 0.25}
    :uniform-addition-and-deletion-rate 0.09
+   :loopification-rate 0.75
    ;:genetic-operator-probabilities {:alternation 0.2
    ;                                 :uniform-mutation 0.2
    ;                                 :uniform-close-mutation 0.1
@@ -258,7 +258,7 @@
    :final-report-simplifications 5000
    :max-error 5000
    ;:meta-error-categories [:tag-usage]
-   :use-single-thread true
+   ;:use-single-thread true
    ;:print-history true
-   :pop-when-tagging false
+   ;:pop-when-tagging false
    })

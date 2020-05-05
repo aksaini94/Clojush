@@ -682,6 +682,8 @@
 
 
           :initial-atom-generators ()
+
+          :loopification-rate 0.1
                 
          )))
 

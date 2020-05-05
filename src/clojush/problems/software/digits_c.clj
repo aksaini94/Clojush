@@ -81,19 +81,14 @@
      (the-actual-digits-error-function individual data-cases false))
     ([individual data-cases print-outputs]
       (let [behavior (atom '())
-            ;state-with-tags (tagspace-initialization-heritable (str (:program individual)) (make-push-state))
-            ;stacks-depth (atom (zipmap push-types (repeat 0)))
             reuse-metric (atom ())       
-            repetition-metric (atom ())            
-            ;local-tagspace (atom @global-common-tagspace)
+            repetition-metric (atom ())
             cases (case data-cases
                     :train train-cases
                     :simplify train-cases
                     :test test-cases
-                    [])
-            errors (let [ran (if (= data-cases :train)
-                               (rand-nth cases)
-                               nil)]
+                    test-cases)
+            errors (let [ran nil]
                      (doall
                       (for [[input1 correct-output] cases]
                         (let [final-state (if (= [input1 correct-output] ran)
@@ -107,17 +102,12 @@
                                                             (push-item "" :output)))
                                             (run-push (:program individual)
                                                       (->> (push-item input1 :input (make-push-state))
-                                                      ;(push-item input1 :input (assoc (make-push-state) :tag @local-tagspace)) 
-                                                       ;(push-item input1 :input (make-push-state))
                                                            (push-item "" :output)))
                                             )
                               result (stack-ref :output 0 final-state)
-                              ;_ (reset! local-tagspace (get final-state :tag))
                               ]
                           (when print-outputs
                             (println (format "| Correct output: %s\n| Program output: %s\n" (pr-str correct-output) (pr-str result))))
-                         ; Update the length of each stack
-                        ;(doseq [[k v] (:max-stack-depth final-state)] (swap! stacks-depth update k #(max % v)))
                           (if (= [input1 correct-output] ran)
                             (let [metrics (mod-metrics (:trace final-state) (:trace_id final-state))]
                               (do
@@ -146,9 +136,10 @@
             ;      )))
             ]
         ;(assoc individual :stacks-info @stacks-depth)
-        (if (or (= data-cases :train) (= data-cases :simplify))
+        (if (= data-cases :test)
+          (assoc individual :test-errors errors)
           (assoc individual :behaviors @behavior :errors errors :reuse-info @reuse-metric :repetition-info @repetition-metric); :tagspace @local-tagspace)
-          (assoc individual :test-errors errors))))))
+          )))))
 
 (defn get-digits-train-and-test
   "Returns the train and test cases."
@@ -209,8 +200,9 @@
    :population-size 1000
    :max-generations 300
    :parent-selection :lexicase
-   :genetic-operator-probabilities {:uniform-addition-and-deletion 1}
+   :genetic-operator-probabilities {:modified-uniform-addition-and-deletion 1}
    :uniform-addition-and-deletion-rate 0.09
+   :add-instruction-from-other-rate 0.5
    ;:genetic-operator-probabilities {:alternation 0.2
    ;                                 :uniform-mutation 0.2
    ;                                 :uniform-close-mutation 0.1
@@ -224,7 +216,6 @@
    :report-simplifications 0
    :final-report-simplifications 5000
    :max-error 5000
-   ;:meta-error-categories [:max-stacks-depth]
    ;:use-single-thread true
    ;:print-history true
    })

@@ -639,7 +639,7 @@ given by uniform-deletion-rate.
   element of the genome may possibly be deleted. Probabilities are given by
   uniform-addition-and-deletion-rate.
   Works with Plushy genomes."
-  [ind {:keys [uniform-addition-and-deletion-rate add-instruction-from-other-rate maintain-ancestors atom-generators population]
+  [ind {:keys [uniform-addition-and-deletion-rate add-instruction-from-other-rate maintain-ancestors atom-generators seniors population]
         :as argmap}]
   (let [addition-rate (random-element-or-identity-if-not-a-collection uniform-addition-and-deletion-rate)
         add-instruction-from-other-rate (random-element-or-identity-if-not-a-collection add-instruction-from-other-rate)
@@ -650,13 +650,41 @@ given by uniform-deletion-rate.
                                    (mapv #(if (< (lrand) addition-rate)
                                             (lshuffle [%
                                                        (if (< (lrand) add-instruction-from-other-rate)
-                                                         (rand-nth (:genome (select population argmap)))
+                                                         (rand-nth seniors)
+                                                         ;(rand-nth (:genome (select population argmap)))
                                                          (random-genome-gene atom-generators argmap))])
                                             [%])
                                          (:genome ind))))
         new-genome (vec (filter identity
                                 (mapv #(if (< (lrand) deletion-rate) nil %)
                                       after-addition)))]
+    (make-individual :genome new-genome
+                     :history (:history ind)
+                     :grain-size (compute-grain-size new-genome ind argmap)
+                     :ancestors (if maintain-ancestors
+                                  (cons (:genome ind) (:ancestors ind))
+                                  (:ancestors ind)))))
+
+(defn loopification
+  "Returns the individual after replacing all the consecutively repeating sequence of modules
+  of length 1 or 2 by a looping instruction. For example, if the genome is [A A A B C D E D E F],
+  the new genome would be [3 exec_dup_times A B C 2 exec_dup_times (D E) F]. Replacement of every
+  repeating sequence happens with the probability given by loopification-rate."
+  [ind {:keys [loopification-rate maintain-ancestors atom-generators population]
+        :as argmap}]
+  (let [new-genome (loop [geno (apply concat (map #(if (and (> (count %) 1) (< (rand) loopification-rate))
+                                                     (list (random-genome-gene (list (count %)) argmap) (random-genome-gene (list 'exec_dup_times) argmap) (first %))
+                                                     %)
+                                                  (partition-by identity (:genome ind))))
+                          i 0]
+                     (if (= i 2)                                             ; max length of modules is 2
+                       (vec (remove #{"#"} geno))
+                       (recur (concat (take i geno) (apply concat (map #(if (and (> (count %) 1) (< (rand) loopification-rate))
+                                                                          (list (random-genome-gene (list (count %)) argmap) (random-genome-gene (list 'exec_dup_times) argmap) (first %))
+                                                                          (first %))
+                                                                       (partition-by identity (partition 2 2 ["#"] (drop i geno))))))
+                              (+ i 1))
+                       ))]
     (make-individual :genome new-genome
                      :history (:history ind)
                      :grain-size (compute-grain-size new-genome ind argmap)

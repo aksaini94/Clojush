@@ -92,16 +92,14 @@
      (the-actual-syllables-error-function individual data-cases false))
     ([individual data-cases print-outputs]
       (let [behavior (atom '())
-            reuse-metric (atom ())       ;the lenght will be equal to the number of test cases
+            reuse-metric (atom ())       ;the length will be equal to the number of test cases
             repetition-metric (atom ())
             cases (case data-cases
                     :train train-cases
                     :simplify train-cases
                     :test test-cases
                     [])
-            errors (let [ran (if (= data-cases :train)
-                               (rand-nth cases)
-                               nil)]
+            errors (let [ran nil]
                      (flatten
                       (doall
                        (for [[input correct-output] cases]
@@ -130,9 +128,9 @@
                                       num-result)) ;distance from correct integer
                               1000)
                             ))))))]
-        (if (or (= data-cases :train) (= data-cases :simplify))
-          (assoc individual :behaviors @behavior :errors errors :reuse-info @reuse-metric :repetition-info @repetition-metric)
-          (assoc individual :test-errors errors))))))
+        (if (= data-cases :test)
+          (assoc individual :test-errors errors)
+          (assoc individual :behaviors @behavior :errors errors :reuse-info @reuse-metric :repetition-info @repetition-metric))))))
 
 (defn get-syllables-train-and-test
   "Returns the train and test cases."
@@ -179,20 +177,24 @@
 
 ; Define the argmap
 (def argmap
-  {:error-function (make-syllables-error-function-from-cases (first syllables-train-and-test-cases)
-                                                             (second syllables-train-and-test-cases))
-   :atom-generators syllables-atom-generators
-   :max-points 3200
+  {:error-function                     (make-syllables-error-function-from-cases (first syllables-train-and-test-cases)
+                                                                                 (second syllables-train-and-test-cases))
+   :atom-generators                    syllables-atom-generators
+   :max-points                         3200
    :max-genome-size-in-initial-program 400
-   :evalpush-limit 1600
-   :population-size 1000
-   :max-generations 300
-   :parent-selection :lexicase
-   :genetic-operator-probabilities {:alternation 0.2
-                                    :uniform-mutation 0.2
-                                    :uniform-close-mutation 0.1
-                                    [:alternation :uniform-mutation] 0.5
-                                    }
+   :evalpush-limit                     1600
+   :population-size                    1000
+   :max-generations                    300
+   :parent-selection                   :lexicase
+   :genetic-operator-probabilities     {[:uniform-addition-and-deletion :loopification] 0.75
+                                        :uniform-addition-and-deletion                  0.25}
+   :uniform-addition-and-deletion-rate 0.09
+   :loopification-rate                 0.75
+   ;:genetic-operator-probabilities {:alternation                     0.2
+   ;:uniform-mutation                0.2
+   ; :uniform-close-mutation          0.1
+   ; [:alternation :uniform-mutation] 0.5
+   ;}
    :alternation-rate 0.01
    :alignment-deviation 10
    :uniform-mutation-rate 0.01
