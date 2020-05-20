@@ -667,8 +667,8 @@
           ;; as the run proceeds.
          
          :filter-params false
-          ;; If false, no filtering as part of preseelction. Othersie, should be a map with :features and :thresholds as keys.
-          ;; :features contains a list of design values used in preselection. :thresholds contains the list of correspoding 
+          ;; If false, no filtering as part of preselection. Otherwise, should be a map with :features and :thresholds as keys.
+          ;; :features contains a list of design values used in preselection. :thresholds contains the list of corresponding
           ;; values of thresholds to ne used in preselection.
           ;; {:features [reuse] thresholds [.6]}. It means that individuals will be filtered on the basis of reuse.
           ;; DON'T KNOW HOW TO COMBINE BOTH THE MEASURES
@@ -678,12 +678,16 @@
           :common-tagspace-fitness {}
 
          :use-lineage-tagspaces false  
-         ;; if true, the tagspace of parent witll be trasferred to its child.
+         ;; if true, the tagspace of parent will be transferred to its child.
 
 
           :initial-atom-generators ()
 
           :loopification-rate 0.1
+
+
+          :uniform-segment-addition-and-deletion-rate 0.1
+          ;; higher this rate, larger will be the segments on average
                 
          )))
 

@@ -297,8 +297,8 @@
                                   ;(println (pr-str @global-common-tagspace))
                                   ;(swap! push-argmap assoc :atom-generators (into @global-initial-atom-generators (flatten (vals @global-common-tagspace))))
                                   ;(prn "Updated Atoms" (:atom-generators @push-argmap))
-                                  (swap! push-argmap assoc :seniors (apply concat (repeatedly 50 (fn [] (get (auto-simplify-plush (select (map #(deref %) pop-agents) @push-argmap) (:error-function @push-argmap) 25 0) :genome)))))
-                                  (prn "Seniors are:" (:seniors @push-argmap))
+                                  (swap! push-argmap assoc :seniors (repeatedly 50 (fn [] (get (auto-simplify-plush (select (map #(deref %) pop-agents) @push-argmap) (:error-function @push-argmap) 25 0) :genome))))
+                                  ;(prn "Seniors are:" (:seniors @push-argmap))
                                   (println "\nProducing offspring...") (flush)
                                   (produce-new-offspring pop-agents
                                                          child-agents

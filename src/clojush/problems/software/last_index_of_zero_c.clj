@@ -228,13 +228,15 @@
    :parent-selection                   :lexicase
    :downsample-factor                  0.5
    :training-cases                     (first last-index-of-zero-train-and-test-cases)
-   :genetic-operator-probabilities     {:uniform-addition-and-deletion 1
+   :genetic-operator-probabilities     {:modified-uniform-addition-and-deletion 0.75
+                                        :uniform-segment-addition-and-deletion 0.25
                                         ;[:uniform-addition-and-deletion :loopification]  0.75
                                         ;:uniform-addition-and-deletion 0.25
                                         }
    :uniform-addition-and-deletion-rate 0.09
    :loopification-rate                 0.75
    :add-instruction-from-other-rate 0.5
+   :uniform-segment-addition-and-deletion-rate 0.2
    ;:genetic-operator-probabilities {:alternation 0.2
    ;                                 :uniform-mutation 0.2
    ;                                 :uniform-close-mutation 0.1
@@ -255,4 +257,4 @@
    ;:pop-when-tagging false
    ;:tag-enrichment-types [:integer :boolean :vector_integer :exec]
    ;:tag-enrichment 50
-                                        })
+   })

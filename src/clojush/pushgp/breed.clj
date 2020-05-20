@@ -36,6 +36,7 @@
    :uniform-segment-duplication {:fn uniform-segment-duplication :parents 1 :works-with-plushy true :works-with-plush true}
    :uniform-segment-deletion {:fn uniform-segment-deletion :parents 1 :works-with-plushy true :works-with-plush true}
    :loopification {:fn loopification :parents 1 :works-with-plushy true :works-with-plush true}
+   :uniform-segment-addition-and-deletion {:fn uniform-segment-addition-and-deletion :parents 1 :works-with-plushy true :works-with-plush true}
    })
 
 (defn revert-too-big-child

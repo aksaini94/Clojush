@@ -650,7 +650,7 @@ given by uniform-deletion-rate.
                                    (mapv #(if (< (lrand) addition-rate)
                                             (lshuffle [%
                                                        (if (< (lrand) add-instruction-from-other-rate)
-                                                         (rand-nth seniors)
+                                                         (rand-nth (apply concat seniors))
                                                          ;(rand-nth (:genome (select population argmap)))
                                                          (random-genome-gene atom-generators argmap))])
                                             [%])
@@ -685,6 +685,48 @@ given by uniform-deletion-rate.
                                                                        (partition-by identity (partition 2 2 ["#"] (drop i geno))))))
                               (+ i 1))
                        ))]
+    (make-individual :genome new-genome
+                     :history (:history ind)
+                     :grain-size (compute-grain-size new-genome ind argmap)
+                     :ancestors (if maintain-ancestors
+                                  (cons (:genome ind) (:ancestors ind))
+                                  (:ancestors ind)))))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; uniform segment addition and deletion
+
+(defn uniform-segment-addition-and-deletion
+  "Returns the individual with each segment possibly duplicated. The probability that a
+  segment will be duplicated is given by uniform-duplication-rate. The probability that
+  segmenting will occur at each gene is given by uniform-segmenting-rate.
+  Works with Plushy genomes."
+  [ind {:keys [uniform-segment-addition-and-deletion-rate uniform-segmenting-rate maintain-ancestors seniors]
+        :as argmap}]
+  (let [addition-rate (random-element-or-identity-if-not-a-collection uniform-segment-addition-and-deletion-rate)
+        deletion-rate (if (zero? addition-rate)
+                        0
+                        (/ 1 (+ (/ 1 addition-rate) 1)))
+        segmenting-rate (random-element-or-identity-if-not-a-collection uniform-segmenting-rate)
+
+        ; following is a collection of segments from selected individuals. Similar to atom generators for regular UMAD.
+        foreign-segments (apply concat (map #(let [x (atom 0)]
+                                               (partition-by (fn [_] (if (< (rand) segmenting-rate) @x (let [_ (swap! x inc)] @x)))
+                                                             %))
+                                            seniors))
+
+        after-addition (vec (apply concat
+                                   (mapv #(if (< (lrand) addition-rate)
+                                            (apply concat (lshuffle [(list %) (rand-nth foreign-segments)]))
+                                            [%])
+                                         (:genome ind))))
+
+        segmented (let [x (atom 0)]
+                    (partition-by (fn [_] (if (< (rand) segmenting-rate) @x (let [_ (swap! x inc)] @x)))
+                                  after-addition))
+        new-genome (vec (apply concat (map #(if (< (rand) deletion-rate) [] %)
+                                           segmented)))]
     (make-individual :genome new-genome
                      :history (:history ind)
                      :grain-size (compute-grain-size new-genome ind argmap)
