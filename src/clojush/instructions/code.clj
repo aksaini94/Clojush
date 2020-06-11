@@ -128,8 +128,8 @@
     (if (not (or (empty? (:exec state))
                  (empty? (rest (:integer state)))))
       (let [to-do (first (:exec state))
-            current-index (first (rest (:integer state)))
-            destination-index (first (:integer state))
+            current-index (stack-ref :integer 1 state)
+            destination-index (top-item :integer state)
             args-popped (pop-item :integer
                                   (pop-item :integer
                                             (pop-item :exec state)))
@@ -167,9 +167,9 @@
   ;; differs from code.do*count only in the source of the code and the recursive call    
   (fn [state] 
     (if (not (or (empty? (:integer state))
-                 (< (first (:integer state)) 1)
+                 (< (top-item :integer state) 1)
                  (empty? (:exec state))))
-      (push-item (list 0 (dec (first (:integer state))) 'exec_do*range (first (:exec state)))
+      (push-item (list 0 (dec (top-item :integer state)) 'exec_do*range (first (:exec state)))
                  :exec
                  (pop-item :integer (pop-item :exec state)))
       state)))
@@ -179,7 +179,7 @@
   ^{:stack-types [:code :exec :integer]}
   (fn [state]
     (if (not (or (empty? (:integer state))
-                 (< (first (:integer state)) 1)
+                 (< (top-item :integer state) 1)
                  (empty? (:code state))))
       (push-item (list 0 (dec (first (:integer state))) 'code_quote 
                        (cons 'integer_pop 
@@ -195,9 +195,9 @@
   ;; differs from code.do*times only in the source of the code and the recursive call
   (fn [state]
     (if (not (or (empty? (:integer state))
-                 (< (first (:integer state)) 1)
+                 (< (top-item :integer state) 1)
                  (empty? (:exec state))))
-      (push-item (list 0 (dec (first (:integer state))) 'exec_do*range
+      (push-item (list 0 (dec (top-item :integer state)) 'exec_do*range
                        (cons 'integer_pop (ensure-list (first (:exec state)))))
                  :exec
                  (pop-item :integer (pop-item :exec state)))

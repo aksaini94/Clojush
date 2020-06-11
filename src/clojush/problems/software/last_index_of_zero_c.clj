@@ -14,7 +14,7 @@
         clojush.instructions.tag
         [clojure.math numeric-tower combinatorics]
         )
-  (:require [clojush.problems.software.last-index-of-zero :as liz]))
+  (:require [clojure.math.numeric-tower :as math]))
 
 (def exec-reuse-instrs '(exec_dup, exec_dup_times, exec_dup_items, exec_yankdup, exec_do*range, exec_do*count,  exec_do*times, exec_while, exec_do*while, exec_s, exec_y, exec_do*vector_integer, exec_do*vector_float, exec_do*vector_boolean, exec_do*vector_string))
 
@@ -91,11 +91,8 @@
     ([individual data-cases] ;; data-cases should be :train or :test
      (the-actual-last-index-of-zero-error-function individual data-cases false))
     ([individual data-cases print-outputs]
-     (let [;stacks-depth (atom (zipmap push-types (repeat 0)))
-           ;state-with-tags (tagspace-initialization (str (:program individual)) 1000 (make-push-state))
-           reuse-metric (atom ())                           ;the lenght will be equal to the number of test cases
-           repetition-metric (atom ())
-           behavior (atom '())
+     (let [behavior (atom '())
+           tidiness (atom '())
            ;local-tagspace (case data-cases
            ;  :train                                         ; (if global-use-lineage-tagspaces
            ;(atom (:tagspace individual))
@@ -114,14 +111,12 @@
                    :simplify train-cases
                    :test test-cases
                    data-cases)
-           errors (let [ran nil                             ; (if (and (not= data-cases :test) (not= data-cases :simplify))
-                        ;(rand-nth cases)
-                        ; nil)
-                        ]
+           errors (let [init-state (if (= (first cases) :permute) (assoc (make-push-state) :simplification-by-permutation true) (make-push-state))
+                        cases (if (= (first cases) :permute) (rest cases) cases)]
                     (doall
                       (for [[input correct-output] cases]
                         (let [final-state (run-push (:program individual)
-                                                    (->> (make-push-state)
+                                                    (->> init-state
                                                          (push-item input :input)))
                               result (top-item :integer final-state)
                               ]
@@ -129,12 +124,7 @@
                           ; (println (format "Correct output: %2d | Program output: %s"
                           ;                correct-output
                           ;                 (str result))))
-                          ;(doseq [[k v] (:max-stack-depth final-state)] (swap! stacks-depth update k #(max % v)))
-                          ; (if (= [input correct-output] ran)
-                          ; (let [metrics (mod-metrics (:trace final-state) (:trace_id final-state))]
-                          ; (do
-                          ;  (swap! reuse-metric conj (first metrics))
-                          ;  (swap! repetition-metric conj (last metrics)))))
+                          (swap! tidiness conj (reduce + (map #(math/abs (- (first %) (second %))) (filter #(some? (second %)) (vec @global-id-arg)) )))
 
                           ; Record the behavior
                           (swap! behavior conj result)
@@ -165,12 +155,7 @@
            ]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors :reuse-info @reuse-metric :repetition-info @repetition-metric ; (let [ts (:tagspace individual)]
-                            ; (if true                        ;update?
-                            ;@local-tagspace
-                            ;  ts))
-                            ; :tagspace-effect (if update? 1 0)
-                            ))
+          (assoc individual :behaviors @behavior :errors errors :tidiness  @tidiness))
           ))))
 
 (defn get-last-index-of-zero-train-and-test
@@ -228,8 +213,8 @@
    :parent-selection                   :lexicase
    :downsample-factor                  0.5
    :training-cases                     (first last-index-of-zero-train-and-test-cases)
-   :genetic-operator-probabilities     {:modified-uniform-addition-and-deletion 0.75
-                                        :uniform-segment-addition-and-deletion 0.25
+   :genetic-operator-probabilities     {                    ;:modified-uniform-addition-and-deletion 0.75
+                                        :uniform-segment-addition-and-deletion 1
                                         ;[:uniform-addition-and-deletion :loopification]  0.75
                                         ;:uniform-addition-and-deletion 0.25
                                         }
@@ -247,14 +232,11 @@
    ;:uniform-mutation-rate 0.01
    :problem-specific-report            last-index-of-zero-report
    :problem-specific-initial-report    last-index-of-zero-initial-report
-   :report-simplifications             0
+   :report-simplifications             1000
    :final-report-simplifications       5000
    :max-error                          1000000
-   ;:meta-error-categories [:tag-usage]
    ;:use-single-thread true
    ;:print-history true
    ;:use-lineage-tagspaces false
    ;:pop-when-tagging false
-   ;:tag-enrichment-types [:integer :boolean :vector_integer :exec]
-   ;:tag-enrichment 50
    })

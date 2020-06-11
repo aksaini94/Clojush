@@ -26,9 +26,9 @@
 
 ;; Providing true as a third argument produces a trace of all stacks as it runs:
 
-(run-push '(exec_dup (exec_swap 1 2))
+(run-push '(integer_yankdup in1 in2 4 6 integer_yankdup)
           ;(make-push-state)
-          (assoc (make-push-state) :calculate-mod-metrics true)
+          (push-item 4 :input (push-item 6 :input (assoc (make-push-state) :simplification-by-permutation true)))
           true true true
           )          
 
@@ -87,6 +87,7 @@
                                     :uniform-mutation 0.5}
    :max-generations 1
    :meta-error-categories [:reuse :repetition]
+   :use-single-thread true
    })
 
 ;(pushgp argmap)

@@ -178,3 +178,5 @@
 (def global-use-lineage-tagspaces (atom false))
 
 (def global-initial-atom-generators (atom ()))
+
+(def global-id-arg (atom {}))

@@ -677,6 +677,7 @@
           :common-tagspace {}
           :common-tagspace-fitness {}
 
+          :id-arg {}
          :use-lineage-tagspaces false  
          ;; if true, the tagspace of parent will be transferred to its child.
 

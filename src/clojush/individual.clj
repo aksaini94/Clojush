@@ -7,11 +7,11 @@
 
 (defrecord individual [genome program errors behaviors total-error normalized-error weighted-error
                        novelty meta-errors history ancestors uuid parent-uuids genetic-operators
-                       age grain-size is-random-replacement stacks-info tag-usage mod-val reuse-info repetition-info tagspace tagspace-effect improvement-by-mutation])
+                       age grain-size is-random-replacement stacks-info tag-usage mod-val reuse-info repetition-info tagspace tagspace-effect improvement-by-mutation tidiness])
 
 (defn make-individual [& {:keys [genome program errors behaviors total-error normalized-error weighted-error
                                  novelty meta-errors history ancestors uuid parent-uuids
-                                 genetic-operators age grain-size is-random-replacement stacks-info tag-usage mod-val reuse-info repetition-info tagspace tagspace-effect improvement-by-mutation]
+                                 genetic-operators age grain-size is-random-replacement stacks-info tag-usage mod-val reuse-info repetition-info tagspace tagspace-effect improvement-by-mutation tidiness]
                           :or {genome nil
                                program nil
                                errors nil
@@ -37,10 +37,11 @@
                                tagspace nil
                                tagspace-effect nil
                                improvement-by-mutation nil
+                               tidiness nil
                                }}]
   (individual. genome program errors behaviors total-error normalized-error weighted-error novelty
                meta-errors history ancestors uuid parent-uuids genetic-operators age grain-size
-               is-random-replacement stacks-info tag-usage mod-val reuse-info repetition-info tagspace tagspace-effect improvement-by-mutation))
+               is-random-replacement stacks-info tag-usage mod-val reuse-info repetition-info tagspace tagspace-effect improvement-by-mutation tidiness))
 
 (defn printable [thing]
   (letfn [(unlazy [[head & tail]]
@@ -55,6 +56,6 @@
         (let [k '(:genome :program :errors :behaviors :total-error :normalized-error 
                           :weighted-error :novelty :meta-errors :history :ancestors :uuid 
                           :parent-uuids :genetic-operators :age :grain-size 
-                          :is-random-replacement :stacks-info :tag-usage :mod-val :reuse-info :repetition-info :tagspace :tagspace-effect :improvement-by-mutation)]
+                          :is-random-replacement :stacks-info :tag-usage :mod-val :reuse-info :repetition-info :tagspace :tagspace-effect :improvement-by-mutation :tidiness)]
           (interleave k  (map #(printable (get i %)) k)))))
 

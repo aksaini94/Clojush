@@ -254,7 +254,8 @@
     (when (> report-simplifications 0)
       (println "Lexicase best partial simplification:"
                (pr-str (not-lazy (:program (auto-simplify lex-best 
-                                                          error-function 
+                                                          error-function
+                                                          (:training-cases argmap)
                                                           report-simplifications 
                                                           false 
                                                           1000))))))
@@ -278,7 +279,8 @@
     (when (> report-simplifications 0)
       (println "Zero cases best partial simplification:"
                (pr-str (not-lazy (:program (auto-simplify most-zero-cases-best 
-                                                          error-function 
+                                                          error-function
+                                                          (:training-cases argmap)
                                                           report-simplifications 
                                                           false 
                                                           1000))))))
@@ -367,20 +369,20 @@
                       ; if none pass all subsampled cases, or random individual that passes
                       ; all subsampled cases but not all training cases.
                       (error-function
-                       (loop [sorted-individuals sorted]
-                         (if (empty? (rest sorted-individuals))
-                           (first sorted-individuals)
-                           (if (and (<= (:total-error (first sorted-individuals)) error-threshold)
-                                    (> (apply + (:errors (error-function (first sorted-individuals) :train))) error-threshold)
-                                    (<= (:total-error (second sorted-individuals)) error-threshold))
-                             (recur (rest sorted-individuals))
-                             (first sorted-individuals))))
-                       :train))
+                        (loop [sorted-individuals sorted]
+                          (if (empty? (rest sorted-individuals))
+                            (first sorted-individuals)
+                            (if (and (<= (:total-error (first sorted-individuals)) error-threshold)
+                                     (> (apply + (:errors (error-function (first sorted-individuals) :train))) error-threshold)
+                                     (<= (:total-error (second sorted-individuals)) error-threshold))
+                              (recur (rest sorted-individuals))
+                              (first sorted-individuals))))
+                        :train))
         total-error-best (if (not= parent-selection :downsampled-lexicase)
                            err-fn-best
                            (assoc err-fn-best
-                                  :total-error
-                                  (apply +' (:errors err-fn-best))))
+                             :total-error
+                             (apply +' (:errors err-fn-best))))
         psr-best (problem-specific-report total-error-best
                                           population
                                           generation
@@ -415,7 +417,7 @@
                 #{:lexicase :elitegroup-lexicase :leaky-lexicase :epsilon-lexicase
                   :random-threshold-lexicase :random-toggle-lexicase
                   :randomly-truncated-lexicase})
-          (lexicase-report population argmap))
+      (lexicase-report population argmap))
     (when (= total-error-method :ifs) (implicit-fitness-sharing-report population argmap))
     (println (format "--- Best Program (%s) Statistics ---" (str "based on " (name err-fn))))
     (r/generation-data! [:best :individual] (dissoc best :program))
@@ -426,16 +428,27 @@
     ;
     ;(println "Reuse for all test cases is" (pr-str (:reuse-info best)))
     ;(println "Repetition for all test cases is" (pr-str (:repetition-info best)))
-    
+
     ;
     (when (> report-simplifications 0)
       (println "Partial simplification:"
                (pr-str (not-lazy (:program (r/generation-data! [:best :individual-simplified]
-                                            (auto-simplify best
-                                                          error-function
-                                                          report-simplifications
-                                                          false
-                                                          1000)))))))
+                                                               (auto-simplify best
+                                                                                    error-function
+                                                                                    (:training-cases argmap)
+                                                                                    report-simplifications
+                                                                                    false
+                                                                                    100)))))))
+
+    ; (when (> report-simplifications 0)
+    ; (println "Partial simplification by permutation:"
+    ; (pr-str (not-lazy (:program (auto-simplify-permute-plush best
+    ;                                                         error-function
+    ;                                                         (:training-cases argmap)
+    ;                                                         report-simplifications
+    ;                                                         true
+    ;                                                         100))))
+    ;))
     (when print-errors (println "Errors:" (not-lazy (:errors best))))
     (when (and print-errors (not (empty? meta-error-categories)))
       (println "Meta-Errors:" (not-lazy (:meta-errors best))))
@@ -460,8 +473,8 @@
     (println "Size:" (r/generation-data! [:best :program-size] (count-points (:program best))))
     (printf "Percent parens: %.3f\n"
             (r/generation-data! [:best :percent-parens]
-              (double (/ (count-parens (:program best))
-                         (count-points (:program best)))))) ;Number of (open) parens / points
+                                (double (/ (count-parens (:program best))
+                                           (count-points (:program best)))))) ;Number of (open) parens / points
     (println "Age:" (:age best))
     (println "--- Population Statistics ---")
     (when print-cosmos-data
@@ -470,11 +483,11 @@
                                         (map #(:total-error (nth (sort-by :total-error population) %))
                                              quants)))))
     (println "Average total errors in population:"
-          (r/generation-data! [:population-report :mean-total-error]
-             (*' 1.0 (mean (map :total-error sorted)))))
+             (r/generation-data! [:population-report :mean-total-error]
+                                 (*' 1.0 (mean (map :total-error sorted)))))
     (println "Median total errors in population:"
-          (r/generation-data! [:population-report :median-total-error]
-             (median (map :total-error sorted))))
+             (r/generation-data! [:population-report :median-total-error]
+                                 (median (map :total-error sorted))))
     (when print-errors (println "Error averages by case:"
                                 (apply map (fn [& args] (*' 1.0 (mean args)))
                                        (map :errors population))))
@@ -492,11 +505,11 @@
              (r/generation-data! [:population-report :mean-genome-size]
                                  (*' 1.0 (mean (map count (map :genome sorted))))))
     (println "Average program size in population (points):"
-          (r/generation-data! [:population-report :mean-program-size]
-             (*' 1.0 (mean (map count-points (map :program sorted))))))
+             (r/generation-data! [:population-report :mean-program-size]
+                                 (*' 1.0 (mean (map count-points (map :program sorted))))))
     (printf "Average percent parens in population: %.3f\n"
-          (r/generation-data! [:population-report :mean-program-percent-params]
-            (mean (map #(double (/ (count-parens (:program %)) (count-points (:program %)))) sorted))))
+            (r/generation-data! [:population-report :mean-program-percent-params]
+                                (mean (map #(double (/ (count-parens (:program %)) (count-points (:program %)))) sorted))))
     (let [ages (map :age population)]
       (when use-ALPS
         (println "Population ages:" ages))
@@ -534,11 +547,11 @@
                (r/generation-data! [:population-report :median-genome-frequency]
                                    (median (vals genome-frequency-map))))
       (println "Max copy number of one genome:"
-        (r/generation-data! [:population-report :max-genome-frequency]
-          (apply max (vals genome-frequency-map))))
+               (r/generation-data! [:population-report :max-genome-frequency]
+                                   (apply max (vals genome-frequency-map))))
       (println "Genome diversity (% unique genomes):\t"
-        (r/generation-data! [:population-report :percent-genomes-unique]
-               (float (/ (count genome-frequency-map) (count population))))))
+               (r/generation-data! [:population-report :percent-genomes-unique]
+                                   (float (/ (count genome-frequency-map) (count population))))))
     (let [frequency-map (frequencies (map :program population))]
       (println "Min copy number of one Push program:"
                (r/generation-data! [:population-report :min-program-frequency]
@@ -547,17 +560,17 @@
                (r/generation-data! [:population-report :median-program-frequency]
                                    (median (vals frequency-map))))
       (println "Max copy number of one Push program:"
-        (r/generation-data! [:population-report :max-program-frequency]
-          (apply max (vals frequency-map))))
+               (r/generation-data! [:population-report :max-program-frequency]
+                                   (apply max (vals frequency-map))))
       (println "Syntactic diversity (% unique Push programs):\t"
-        (r/generation-data! [:population-report :percent-programs-unique]
-               (float (/ (count frequency-map) (count population))))))
+               (r/generation-data! [:population-report :percent-programs-unique]
+                                   (float (/ (count frequency-map) (count population))))))
     (println "Total error diversity:\t\t\t\t"
-        (r/generation-data! [:population-report :percent-total-error-unique]
-             (float (/ (count (distinct (map :total-error population))) (count population)))))
+             (r/generation-data! [:population-report :percent-total-error-unique]
+                                 (float (/ (count (distinct (map :total-error population))) (count population)))))
     (println "Error (vector) diversity:\t\t\t"
-        (r/generation-data! [:population-report :percent-errors-unique]
-             (float (/ (count (distinct (map :errors population))) (count population)))))
+             (r/generation-data! [:population-report :percent-errors-unique]
+                                 (float (/ (count (distinct (map :errors population))) (count population)))))
     (when (not (nil? (:behaviors (first population))))
       (println "Behavioral diversity:\t\t\t\t" (behavioral-diversity population)))
     (when print-homology-data
@@ -583,8 +596,8 @@
       (reset! preselection-counts []))
     (when autoconstructive
       (println "Number of random replacements for non-diversifying individuals:"
-        (r/generation-data! [:population-report :number-random-replacements]
-               (count (filter :is-random-replacement population)))))
+               (r/generation-data! [:population-report :number-random-replacements]
+                                   (count (filter :is-random-replacement population)))))
     (println "--- Run Statistics ---")
     (println "Number of individuals evaluated (running on all training cases counts as 1 evaluation):" @evaluations-count)
     (println "Number of program executions (running on a single case counts as 1 execution):" program-executions-before-report)
@@ -702,7 +715,7 @@
   "Prints the final report of a PushGP run if the run is successful."
   [generation best
    {:keys [error-function final-report-simplifications report-simplifications
-           print-ancestors-of-solution problem-specific-report]}]
+           print-ancestors-of-solution problem-specific-report training-cases]}]
   (printf "\n\nSUCCESS at generation %s\nSuccessful program: %s\nErrors: %s\nTotal error: %s\nHistory: %s\nSize: %s\n\n"
           generation (pr-str (not-lazy (:program best))) (not-lazy (:errors best)) (:total-error best)
           (not-lazy (:history best)) (count-points (:program best)))
@@ -711,7 +724,7 @@
     (prn (:ancestors best)))
   (println "Tagspace:" (pr-str (:tagspace best)))
   (println "Global Tagspace:" (pr-str @global-common-tagspace))
-  (let [simplified-best (auto-simplify best error-function final-report-simplifications true 500)]
+  (let [simplified-best (auto-simplify best error-function training-cases final-report-simplifications true 500)]
     (println "\n;;******************************")
     (println ";; Problem-Specific Report of Simplified Solution")
     ;(println "Reuse in Simplified Solution:" (:reuse-info (error-function simplified-best)))
