@@ -106,7 +106,7 @@
   ^{:stack-types [:string :char]}
   (fn [state]
     (if (and (not (empty? (:string state)))
-             (first (first (:string state))))
+             (first (top-item :string state)))
       (push-item (first (stack-ref :string 0 state))
                  :char
                  (pop-item :string state))
@@ -117,7 +117,7 @@
   ^{:stack-types [:string :char]}
   (fn [state]
     (if (and (not (empty? (:string state)))
-             (last (first (:string state))))
+             (last (top-item :string state)))
       (push-item (last (stack-ref :string 0 state))
                  :char
                  (pop-item :string state))
@@ -129,7 +129,7 @@
   (fn [state]
     (if (and (not (empty? (:string state)))
              (not (empty? (:integer state)))
-             (not (empty? (first (:string state)))))
+             (not (empty? (top-item :string state))))
       (let [st (stack-ref :string 0 state)
             index (mod (stack-ref :integer 0 state) (count st))]
         (push-item (nth st index)

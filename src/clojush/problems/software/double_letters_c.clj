@@ -15,7 +15,8 @@
         [clojush pushstate interpreter random util globals individual]
         clojush.instructions.tag
         clojure.math.numeric-tower
-        ))
+        )
+  (:require [clojure.math.numeric-tower :as math]))
 
 ; Atom generators
 (def double-letters-atom-generators
@@ -89,9 +90,8 @@
     ([individual data-cases] ;; data-cases should be :train or :test
      (the-actual-double-letters-error-function individual data-cases false))
     ([individual data-cases print-outputs]
-     (let [reuse-metric (atom ())                           ;the length will be equal to the number of test cases
-           repetition-metric (atom ())
-           behavior (atom '())
+     (let [behavior (atom '())
+           tidiness (atom '())
            ;local-tagspace (case data-cases
            ;  :train (atom @global-common-tagspace)
            ;  :simplify (atom (:tagspace individual))       ; during simplification and testing, the tagspace should not be changed.
@@ -102,18 +102,18 @@
                    :simplify train-cases
                    :test test-cases
                    data-cases)
-           errors (let [ran nil                             ;(rand-nth cases)
-                        ]
+           errors (let [init-state (if (= (first cases) :permute) (assoc (make-push-state) :simplification-by-permutation true) (make-push-state))
+                        cases (if (= (first cases) :permute) (rest cases) cases)]
                     (doall
                       (for [[input correct-output] cases]
                         (let [final-state (run-push (:program individual)
-                                                    (->> (push-item input :input (make-push-state))
+                                                    (->> (push-item input :input init-state)
                                                          (push-item "" :output)))
                               printed-result (stack-ref :output 0 final-state)]
                           (when print-outputs
                             (println (format "| Correct output: %s\n| Program output: %s\n" (pr-str correct-output) (pr-str printed-result))))
 
-                          ;(doseq [[k v] (:max-stack-depth final-state)] (swap! stacks-depth update k #(max % v)))
+                          (swap! tidiness conj (reduce + (map #(math/abs (- (first %) (second %))) (filter #(some? (second %)) (vec @global-id-arg)) )))
                           ;update the modularity metrics
                           ;(if (= [input correct-output] ran)
                           ;  (let [metrics (mod-metrics (:trace final-state) (:trace_id final-state))]
@@ -140,8 +140,7 @@
            ]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors :reuse-info @reuse-metric :repetition-info @repetition-metric)
-          )))))
+          (assoc individual :behaviors @behavior :errors errors :tidiness  @tidiness))))))
 
 (defn get-double-letters-train-and-test
   "Returns the train and test cases."
@@ -190,6 +189,8 @@
 (def argmap
   {:error-function                     (make-double-letters-error-function-from-cases (first double-letters-train-and-test-cases)
                                                                                       (second double-letters-train-and-test-cases))
+   :training-cases (first double-letters-train-and-test-cases)
+   :sub-training-cases '()
    :atom-generators                    double-letters-atom-generators
    :max-points                         3200
    :max-genome-size-in-initial-program 400
@@ -213,9 +214,6 @@
    :report-simplifications 0
    :final-report-simplifications 5000
    :max-error 5000
-   ;:use-single-thread true
-   ;:meta-error-categories [:tag-usage]
    ;:print-history true
    ;:pop-when-tagging false
-   ;:meta-error-categories [:max-stacks-depth]
    })

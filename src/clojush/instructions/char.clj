@@ -54,7 +54,9 @@
   ^{:stack-types [:char :boolean]}
   (fn [state]
     (if (not (empty? (:char state)))
-      (let [item (stack-ref :char 0 state)]
+      (let [_ (prn "Anil is here" (:char state))
+            item (stack-ref :char 0 state)
+            _ (prn "Anil is here" item)]
         (->> (pop-item :char state)
              (push-item (Character/isDigit item)
                         :boolean)))
