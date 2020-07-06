@@ -21,8 +21,8 @@
             ^{:generator-label "Random numbers in the range [-50,50]"}
             (fn [] (- (lrand-int 101) 50))
             ;;; end ERCs
-            (tag-instruction-erc [:integer :boolean :vector_integer :exec] 1000)
-            (tagged-instruction-erc 1000)
+            ;(tag-instruction-erc [:integer :boolean :vector_integer :exec] 1000)
+            ;(tagged-instruction-erc 1000)
             ;;; end tag ERCs
             'in1
             ;;; end input instructions
@@ -153,20 +153,22 @@
 
 ; Define the argmap
 (def argmap
-  {:error-function (make-last-index-of-zero-error-function-from-cases (first last-index-of-zero-train-and-test-cases)
-                                                                      (second last-index-of-zero-train-and-test-cases))
-   :atom-generators last-index-of-zero-atom-generators
-   :max-points 1200
+  {:error-function                     (make-last-index-of-zero-error-function-from-cases (first last-index-of-zero-train-and-test-cases)
+                                                                                          (second last-index-of-zero-train-and-test-cases))
+   :training-cases                     (first last-index-of-zero-train-and-test-cases)
+   :sub-training-cases                 '()
+   :atom-generators                    last-index-of-zero-atom-generators
+   :max-points                         1200
    :max-genome-size-in-initial-program 150
-   :evalpush-limit 600
-   :population-size 1000
-   :max-generations 300
-   :parent-selection :lexicase
-   :genetic-operator-probabilities {:alternation 0.2
-                                    :uniform-mutation 0.2
-                                    :uniform-close-mutation 0.1
-                                    [:alternation :uniform-mutation] 0.5
-                                    }
+   :evalpush-limit                     600
+   :population-size                    1000
+   :max-generations                    300
+   :parent-selection                   :lexicase
+   :genetic-operator-probabilities     {:uniform-addition-and-deletion 1}
+   ;:genetic-operator-probabilities {:alternation                     0.2
+   ;:uniform-mutation                0.2
+   ; :uniform-close-mutation          0.1
+   ; [:alternation :uniform-mutation] 0.5}
    :alternation-rate 0.01
    :alignment-deviation 10
    :uniform-mutation-rate 0.01

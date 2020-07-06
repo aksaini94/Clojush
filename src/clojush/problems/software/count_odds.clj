@@ -24,7 +24,7 @@
             ;;; end constants
             (fn [] (- (lrand-int 2001) 1000)) ;Integer ERC
             ;;; end ERCs
-            (tag-instruction-erc [:integer :boolean :vector_integer :exec] 1000)
+            (tag-instruction-erc [:exec] 1000)
             (tagged-instruction-erc 1000)
             ;;; end tag ERCs
             'in1
@@ -83,17 +83,24 @@
      (the-actual-count-odds-error-function individual data-cases false))
     ([individual data-cases print-outputs]
       (let [behavior (atom '())
+            tagspace (atom '())
             errors (doall
                      (for [[input1 correct-output] (case data-cases
                                                      :train train-cases
                                                      :test test-cases
                                                      [])]
-                       (let [final-state (run-push (:program individual)
-                                                   (->> (make-push-state)
+                       (let [state-with-tagspace-filled (run-push (:program individual)
+                                                                  (->> (make-push-state)
+                                                                       (push-item input1 :input)))
+                             final-state (run-push (:program individual)
+                                                   (->> (assoc (make-push-state) :tag (:tag state-with-tagspace-filled))
                                                      (push-item input1 :input)))
                              result (top-item :integer final-state)]
                          (when print-outputs
                            (println (format "Correct output: %2d | Program output: %s" correct-output (str result))))
+
+                         (reset! tagspace (:tag state-with-tagspace-filled))
+
                          ; Record the behavior
                          (swap! behavior conj result)
                          ; Error is integer error
@@ -101,9 +108,9 @@
                            (abs (- result correct-output)) ; distance from correct integer
                            1000) ; penalty for no return value
                          )))]
-        (if (= data-cases :train)
-          (assoc individual :behaviors @behavior :errors errors)
-          (assoc individual :test-errors errors))))))
+        (if (= data-cases :test)
+          (assoc individual :test-errors errors)
+          (assoc individual :behaviors @behavior :errors errors :tagspace @tagspace))))))
 
 (defn get-count-odds-train-and-test
   "Returns the train and test cases."
@@ -149,20 +156,20 @@
 
 ; Define the argmap
 (def argmap
-  {:error-function (make-count-odds-error-function-from-cases (first count-odds-train-and-test-cases)
-                                                              (second count-odds-train-and-test-cases))
-   :atom-generators count-odds-atom-generators
-   :max-points 2000
+  {:error-function                     (make-count-odds-error-function-from-cases (first count-odds-train-and-test-cases)
+                                                                                  (second count-odds-train-and-test-cases))
+   :atom-generators                    count-odds-atom-generators
+   :max-points                         2000
    :max-genome-size-in-initial-program 250
-   :evalpush-limit 1500
-   :population-size 1000
-   :max-generations 300
-   :parent-selection :lexicase
-   :genetic-operator-probabilities {:alternation 0.2
-                                    :uniform-mutation 0.2
-                                    :uniform-close-mutation 0.1
-                                    [:alternation :uniform-mutation] 0.5
-                                    }
+   :evalpush-limit                     1500
+   :population-size                    1000
+   :max-generations                    300
+   :parent-selection                   :lexicase
+   :genetic-operator-probabilities     {:uniform-addition-and-deletion 1}
+   ;:genetic-operator-probabilities {:alternation                     0.2
+   ;:uniform-mutation                0.2
+   ;:uniform-close-mutation          0.1
+   ;[:alternation :uniform-mutation] 0.5}
    :alternation-rate 0.01
    :alignment-deviation 10
    :uniform-mutation-rate 0.01
@@ -171,4 +178,7 @@
    :report-simplifications 0
    :final-report-simplifications 5000
    :max-error 1000
+   :meta-error-categories [:tag0]
+   :tag-enrichment-types [:exec]
+   :tag-enrichment 25
    })

@@ -76,11 +76,8 @@
           ((if @global-pop-when-tagging pop-item (fn [type state] state))
                source-type
                (assoc state :tag (assoc (or (:tag state) (sorted-map))
-                                        the-tag
-                                        (let [code (str (first (source-type state)))]
-                                          (if (re-find #"return_" code)
-                                            (str "environment_begin " code " return_tagspace environment_end")
-                                            code)))))))
+                                   the-tag
+                                   (first (source-type state)))))))
       ;; if it's of the form untag_<number>: REMOVE TAG ASSOCIATION
       (= (first iparts) "untag")
       (if (empty? (:tag state))
@@ -123,7 +120,9 @@
               :else
               (let [the-tag (read-string (nth iparts 1))]
                 (push-item (second (closest-association the-tag state)) :exec state)))))))
-
+;
+; tag_exec_<int> requires one paren groups. Check lookup-instruction-paren-groups function in instructions.common.clj
+;
 (defn tag-instruction-erc
   "Returns a function which, when called on no arguments, returns a symbol of the form
    tag_<type>_<number> where type is one of the specified types and number is in the range 

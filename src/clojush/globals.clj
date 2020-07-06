@@ -59,6 +59,9 @@
 (def evaluations-count (atom 0)) 
 ;; Used to count the number of times GP evaluates an individual
 
+(def program-executions-count (atom 0))
+;; Used to count the number of times GP runs a program once
+
 (def point-evaluations-count (atom 0)) 
 ;; Used to count the number of instructions that have been executed
 
@@ -102,9 +105,13 @@
 (def global-atom-generators (atom ())) 
 ;; The instructions and literals that may be used in Push programs.
 
-(def global-max-points (atom 800)) 
+(def global-max-points (atom 100))
 ;; The maximum size of a Push program. Also, the maximum size of code that can appear on
 ;; the exec or code stacks.
+
+(def global-max-nested-depth (atom 200))
+;; The maximum depth of nested code on the code or exec stacks. Needs to be small
+;; enough to not run into StackOverflow errors, likely some value < 1000.
 
 (def global-tag-limit (atom 10000)) 
 ;; The size of the tag space
@@ -131,7 +138,7 @@
 (def global-top-level-pop-code (atom false)) 
 ;; When true, run-push will pop the code stack after running the program
 
-(def global-evalpush-limit (atom 300)) 
+(def global-evalpush-limit (atom 150))
 ;; The number of Push instructions that can be evaluated before stopping evaluation
 
 (def global-evalpush-time-limit (atom 0)) 

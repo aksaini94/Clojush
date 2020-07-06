@@ -1,5 +1,16 @@
 (ns clojush.pushgp.selection.preselection
-  (:use [clojush random]))
+  (:use [clojush random util]))
+
+(defn closest-association1
+  "Returns the key-val pair for the closest match to the given tag
+   in the given state."
+  [tag state]
+  (loop [associations (conj (vec (:tag state)) (first (:tag state)))] ;; conj does wrap
+    (if (or (empty? (rest associations))
+            (<= tag (ffirst associations)))
+      (first associations)
+      (recur (rest associations)))))
+
 
 (defn one-individual-per-error-vector-for-lexicase
   "When :parent-selection is a lexicase method, returns only one random individual 
@@ -74,13 +85,19 @@
     pop
     (vec (take-last (int (* (first (:thresholds filter-params)) population-size)) (sort-by #(first (:reuse-info %)) pop)))))
 
+(defn filter-by-tag0-size
+  "Only those individuals are allowed where size of tag0 segment is less than or equal to 10."
+  [pop]
+  (filterv #(<= (count-points (second (closest-association1 0 {:tag (:tagspace %)}))) 10) pop)
+  )
 
 (defn preselect
   "Returns the population pop reduced as appropriate considering the settings for
   age-mediation, screening, selection method, and autoconstruction."
   [pop argmap]
   (-> pop
-      (filter-by-design-values argmap)
+      ;(filter-by-design-values argmap)
+      (filter-by-tag0-size)
       (nonempties-for-autoconstruction argmap)
       (age-mediate argmap)
       (screen argmap)

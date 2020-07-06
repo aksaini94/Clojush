@@ -66,7 +66,8 @@
     (if (not (empty? (rest (:code state))))
       (let [new-item (cons (stack-ref :code 1 state)
                            (ensure-list (stack-ref :code 0 state)))]
-        (if (<= (count-points new-item) @global-max-points)
+        (if (and (<= (count-points new-item) @global-max-points)
+                 (<= (height-of-nested-list new-item) @global-max-nested-depth))
           (push-item new-item
                      :code
                      (pop-item :code (pop-item :code state)))

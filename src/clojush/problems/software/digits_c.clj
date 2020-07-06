@@ -16,7 +16,7 @@
   (:use clojush.pushgp.pushgp
         [clojush pushstate interpreter random util globals]
         clojush.instructions.tag
-        ;clojush.instructions.environment
+        clojush.instructions.environment
         [clojure.math numeric-tower]
         ))
 
@@ -27,9 +27,7 @@
             ;;; end constants
             (fn [] (- (lrand-int 21) 10))
             ;;; end ERCs
-            'end_tag
-            (tagwrap-instruction-erc 100)
-            ;(tag-instruction-erc [:integer :boolean :string :char :exec] 1000)
+            (tag-instruction-erc [:exec] 1000)
             (tagged-instruction-erc 1000)
             ;;; end tag ERCs
             'in1
@@ -79,30 +77,31 @@
      (the-actual-digits-error-function individual data-cases false))
     ([individual data-cases print-outputs]
       (let [behavior (atom '())
-            state-with-tags (tagspace-initialization-heritable (str (:program individual)) (make-push-state))
-            stacks-depth (atom (zipmap push-types (repeat 0)))
+            tagspace (atom '())
             errors (doall
                      (for [[input1 correct-output] (case data-cases
                                                      :train train-cases
                                                      :test test-cases
-                                                     [])]
-                       (let [final-state (run-push (:program individual)
-                                                   (->> (push-item input1 :input state-with-tags)
+                                                     data-cases)]
+                       (let [state-with-tagspace-filled (run-push (:program individual)
+                                                                  (->> (push-item input1 :input (make-push-state))
+                                                                       (push-item "" :output)))
+                             final-state (run-push '(tagged_0)
+                                                   (->> (push-item input1 :input (assoc (make-push-state) :tag (:tag state-with-tagspace-filled)))
                                                      (push-item "" :output)))
                              result (stack-ref :output 0 final-state)]
                          (when print-outputs
                            (println (format "| Correct output: %s\n| Program output: %s\n" (pr-str correct-output) (pr-str result))))
-                         ; Update the length of each stack
-                         (doseq [[k v] (:max-stack-depth final-state)] (swap! stacks-depth update k #(max % v)))
-                        
+
+                         (reset! tagspace (:tag state-with-tagspace-filled))
+
                          ; Record the behavior              
                          (swap! behavior conj result)
                          ; Error is Levenshtein distance of printed strings
                          (levenshtein-distance correct-output result))))]
-        ;(assoc individual :stacks-info @stacks-depth)
-        (if (= data-cases :train)
-          (assoc individual :behaviors @behavior :errors errors :stacks-info @stacks-depth)
-          (assoc individual :test-errors errors))))))
+        (if (= data-cases :test)
+          (assoc individual :test-errors errors)
+          (assoc individual :behaviors @behavior :errors errors :tagspace @tagspace))))))
 
 (defn get-digits-train-and-test
   "Returns the train and test cases."
@@ -129,10 +128,6 @@
   (let [best-test-errors (:test-errors (error-function best :test))
         best-total-test-error (apply +' best-test-errors)]
     (println ";;******************************")
-    ;(println ";;Automatic tags used to intialize the tagspace (for best program only):")
-    ;(println "Auto-tags:" (keys (get (tagspace-initialization (str (:program best)) 1000 (make-push-state)) :tag)))
-    ;(println ";;Tagspce-Utilization of whole population: " (doall (for [ind population]
-    ;                                                                (intial-tagspace-utilization (str (:program ind)) (tagspace-initialization (str (:program ind)) 1000 (make-push-state))))))
     ;(println ";;Total Error of whole Population: " (doall (for [ind population]
     ;                                                       (apply +' (:errors ind)))))
     (printf ";; -*- Digits problem report - generation %s\n" generation)(flush)
@@ -154,20 +149,22 @@
 
 ; Define the argmap
 (def argmap
-  {:error-function (make-digits-error-function-from-cases (first digits-train-and-test-cases)
-                                                          (second digits-train-and-test-cases))
-   :atom-generators digits-atom-generators
-   :max-points 1200
+  {:error-function                     (make-digits-error-function-from-cases (first digits-train-and-test-cases)
+                                                                              (second digits-train-and-test-cases))
+   :training-cases                     (first digits-train-and-test-cases)
+   :sub-training-cases                 '()
+   :atom-generators                    digits-atom-generators
+   :max-points                         1200
    :max-genome-size-in-initial-program 150
-   :evalpush-limit 600
-   :population-size 1000
-   :max-generations 300
-   :parent-selection :lexicase
-   :genetic-operator-probabilities {:alternation 0.2
-                                    :uniform-mutation 0.2
-                                    :uniform-close-mutation 0.1
-                                    [:alternation :uniform-mutation] 0.5
-                                    }
+   :evalpush-limit                     600
+   :population-size                    1000
+   :max-generations                    300
+   :parent-selection                   :lexicase
+   :genetic-operator-probabilities     {:uniform-addition-and-deletion 1}
+   ;:genetic-operator-probabilities {:alternation                     0.2
+   ; :uniform-mutation                0.2
+   ; :uniform-close-mutation          0.1
+   ; [:alternation :uniform-mutation] 0.5}
    :alternation-rate 0.01
    :alignment-deviation 10
    :uniform-mutation-rate 0.01
@@ -176,6 +173,8 @@
    :report-simplifications 0
    :final-report-simplifications 5000
    :max-error 5000
-   :meta-error-categories [:max-stacks-depth]
+   :meta-error-categories [:tag0]
+   :tag-enrichment-types [:exec]
+   :tag-enrichment 25
    })
 

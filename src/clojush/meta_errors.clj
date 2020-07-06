@@ -43,7 +43,20 @@
 ;;(= cat :tag-usage) (vals (:stacks-info ind))
 ;; (= cat :max-stacks-depth) (vals (:stacks-info ind))
 
+(defn closest-association1
+  "Returns the key-val pair for the closest match to the given tag
+   in the given state."
+  [tag state]
+  (loop [associations (conj (vec (:tag state)) (first (:tag state)))] ;; conj does wrap
+    (if (or (empty? (rest associations))
+            (<= tag (ffirst associations)))
+      (first associations)
+      (recur (rest associations)))))
 
+
+(defn tag0-meta-error
+  [ind evaluated-population argmap]
+  (count-points (second (closest-association1 0 {:tag (:tagspace ind)}))))
 
 (defn size-meta-error
   [ind evaluated-population argmap]

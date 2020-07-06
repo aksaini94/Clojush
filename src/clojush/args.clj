@@ -54,6 +54,9 @@
           ;; Maximum size of push programs and push code, as counted by points
           ;; in the program. 1/4 this limit is used as the limit for sizes of
           ;; Plush genomes.
+
+          :max-nested-depth 200
+          ;; Maximum nested depth of push code and other nested objects.
          
          :max-genome-size-in-initial-program 50
           ;; Maximum size of initial Plush genomes in generation 0. Keep in mind
@@ -70,7 +73,15 @@
          :reuse-errors true
           ;; When true, children produced through direct reproduction will not be
           ;; re-evaluated but will have the error vector of their parent.
-         
+
+          :training-cases '()
+          ;; The list of training cases (inputs and outputs). Used for some parent
+          ;; selection methods, such as downsampled lexicase.
+
+          :sub-training-cases '()
+          ;; The subsample of the training cases used for downsampled lexicase.
+
+
           ;;----------------------------------------
           ;; Genetic operator probabilities
           ;;----------------------------------------
@@ -1006,10 +1017,10 @@
              :atom-generators
              (let [tag-instructions
                    (concat [(tag-instruction-erc types 10000)
-                            (untag-instruction-erc 10000)
+                            ;(untag-instruction-erc 10000)
                             (tagged-instruction-erc 10000)
                             'integer_tagged_instruction]
-                           (if (use-type :integer) '[integer_tag_exec_instruction] [])
+                           (if (use-type :exec) '[integer_tag_exec_instruction] [])
                            (if (use-type :code) '[integer_tag_code_instruction] [])
                            (if (use-type :integer) '[integer_tag_integer_instruction] [])
                            (if (use-type :float) '[integer_tag_float_instruction] [])

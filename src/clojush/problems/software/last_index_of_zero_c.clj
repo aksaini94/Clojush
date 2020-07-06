@@ -11,7 +11,7 @@
 (ns clojush.problems.software.last-index-of-zero-c
   (:use clojush.pushgp.pushgp
         [clojush pushstate interpreter random util globals]
-        ;clojush.instructions.tag
+        clojush.instructions.tag
         [clojure.math numeric-tower combinatorics]
         ))
 
@@ -21,8 +21,8 @@
             ^{:generator-label "Random numbers in the range [-50,50]"}
             (fn [] (- (lrand-int 101) 50))
             ;;; end ERCs
-            ;(tag-instruction-erc [:integer :boolean :vector_integer :exec] 1000)
-            ;(tagged-instruction-erc 1000)
+            (tag-instruction-erc [:exec] 1000)
+            (tagged-instruction-erc 1000)
             ;;; end tag ERCs
             'in1
             ;;; end input instructions
@@ -84,29 +84,25 @@
     ([individual data-cases] ;; data-cases should be :train or :test
      (the-actual-last-index-of-zero-error-function individual data-cases false))
     ([individual data-cases print-outputs]
-      (let [;stacks-depth (atom (zipmap push-types (repeat 0)))
-            ;state-with-tags (tagspace-initialization (str (:program individual)) 1000 (make-push-state))
-            reuse-metric (atom ())       ;the lenght will be equal to the number of test cases
-            repetition-metric (atom ())
-            behavior (atom '())
+      (let [behavior (atom '())
+            ;tagspace (atom '())
+            state-with-tagspace-filled (run-push (:program individual) (push-item '(exec_noop) :input (make-push-state)))
             errors (doall
                      (for [[input correct-output] (case data-cases
                                                     :train train-cases
                                                     :test test-cases
-                                                    [])]
-                       (let [final-state (run-push (:program individual)
-                                                   (push-item input :input (make-push-state)))
+                                                    data-cases)]
+                       (let [final-state (run-push '(tagged_0)
+                                                   (push-item input :input
+                                                              (assoc (make-push-state) :tag (:tag state-with-tagspace-filled))))
                              result (top-item :integer final-state)]
                          (when print-outputs
                            (println (format "Correct output: %2d | Program output: %s"
                                             correct-output
                                             (str result))))
-                         ;(doseq [[k v] (:max-stack-depth final-state)] (swap! stacks-depth update k #(max % v)))
-                         (let [metrics (mod-metrics (:trace final-state) (:trace_id final-state))]
-                                              (do
-                                                (swap! reuse-metric conj (first metrics))
-                                              (swap! repetition-metric conj (last metrics))))
-                         
+
+                         ;(reset! tagspace (:tag state-with-tagspace-filled))
+
                          ; Record the behavior
                          (swap! behavior conj result)
                          ; Error is absolute distance from correct index
@@ -114,9 +110,9 @@
                            (abs (- result correct-output)) ; distance from correct integer
                            1000000) ; penalty for no return value
                          )))]
-        (if (= data-cases :train)
-          (assoc individual :behaviors @behavior :errors errors :reuse-info @reuse-metric :repetition-info @repetition-metric)
-          (assoc individual :test-errors errors))))))
+        (if (= data-cases :test)
+          (assoc individual :test-errors errors)
+          (assoc individual :behaviors @behavior :errors errors :tagspace (:tag state-with-tagspace-filled)))))))
 
 (defn get-last-index-of-zero-train-and-test
   "Returns the train and test cases."
@@ -162,20 +158,22 @@
 
 ; Define the argmap
 (def argmap
-  {:error-function (make-last-index-of-zero-error-function-from-cases (first last-index-of-zero-train-and-test-cases)
-                                                                      (second last-index-of-zero-train-and-test-cases))
-   :atom-generators last-index-of-zero-atom-generators
-   :max-points 1200
+  {:error-function                     (make-last-index-of-zero-error-function-from-cases (first last-index-of-zero-train-and-test-cases)
+                                                                                          (second last-index-of-zero-train-and-test-cases))
+   :training-cases                     (first last-index-of-zero-train-and-test-cases)
+   :sub-training-cases                 '()
+   :atom-generators                    last-index-of-zero-atom-generators
+   :max-points                         1200
    :max-genome-size-in-initial-program 150
-   :evalpush-limit 600
-   :population-size 1000
-   :max-generations 300
-   :parent-selection :lexicase
-   :genetic-operator-probabilities {:alternation 0.2
-                                    :uniform-mutation 0.2
-                                    :uniform-close-mutation 0.1
-                                    [:alternation :uniform-mutation] 0.5
-                                    }
+   :evalpush-limit                     600
+   :population-size                    1000
+   :max-generations                    300
+   :parent-selection                   :lexicase
+   :genetic-operator-probabilities     {:uniform-addition-and-deletion 1}
+   ;:genetic-operator-probabilities {:alternation                     0.2
+   ; :uniform-mutation                0.2
+   ; :uniform-close-mutation          0.1
+   ; [:alternation :uniform-mutation] 0.5}
    :alternation-rate 0.01
    :alignment-deviation 10
    :uniform-mutation-rate 0.01
@@ -184,6 +182,7 @@
    :report-simplifications 0
    :final-report-simplifications 5000
    :max-error 1000000
-   :meta-error-categories [:max-stacks-depth]
-   :sort-meta-errors-for-lexicase :last
+   :meta-error-categories [:tag0]
+   :tag-enrichment-types [:exec]
+   :tag-enrichment 10
    })
