@@ -88,18 +88,13 @@
                      (for [[input1 correct-output] (case data-cases
                                                      :train train-cases
                                                      :test test-cases
-                                                     [])]
-                       (let [state-with-tagspace-filled (run-push (:program individual)
-                                                                  (->> (make-push-state)
-                                                                       (push-item input1 :input)))
-                             final-state (run-push (:program individual)
-                                                   (->> (assoc (make-push-state) :tag (:tag state-with-tagspace-filled))
+                                                     data-cases)]
+                       (let [final-state (run-push (:program individual)
+                                                   (->> (make-push-state)
                                                      (push-item input1 :input)))
                              result (top-item :integer final-state)]
                          (when print-outputs
                            (println (format "Correct output: %2d | Program output: %s" correct-output (str result))))
-
-                         (reset! tagspace (:tag state-with-tagspace-filled))
 
                          ; Record the behavior
                          (swap! behavior conj result)
@@ -110,7 +105,7 @@
                          )))]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors :tagspace @tagspace))))))
+          (assoc individual :behaviors @behavior :errors errors))))))
 
 (defn get-count-odds-train-and-test
   "Returns the train and test cases."

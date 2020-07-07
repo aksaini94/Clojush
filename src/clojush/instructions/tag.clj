@@ -2,7 +2,8 @@
   (:use [clojush.pushstate]
         [clojush.globals]
         [clojush.random]
-        [clojush.util])
+        [clojush.util]
+        [clojush.instructions.environment])
   (:require [clojure.string :as string]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -14,8 +15,7 @@
        (or
          (.startsWith (name i) "tag")
          (.startsWith (name i) "untag")
-         (.startsWith (name i) "return_tag_")
-         (.startsWith (name i) "begin_tag_"))))
+         (.startsWith (name i) "return_tag_"))))
 
 (defn closest-association
   "Returns the key-val pair for the closest match to the given tag
@@ -26,17 +26,6 @@
             (<= tag (ffirst associations)))
       (first associations)
       (recur (rest associations)))))
-
-(defn modifed-closest-association
-  "Returns the key-val pair for the closest match to the given tag
-   in the given state."
-  [tag state]
-  (let [threshold 250] ;(* 0.25 (- (apply max (keys (:tag state))) (apply min (keys (:tag state)))))]
-    (loop [associations (conj (vec (:tag state)) (first (:tag state)))] ;; conj does wrap
-      (if (<= (mod (- (ffirst associations) tag) 1000) threshold)
-        (first associations)
-        (if (not (empty? (rest associations)))
-          (recur (rest associations)))))))
 
 (defn handle-tag-instruction
   "Executes the tag instruction i in the state. Tag instructions take one of
@@ -59,14 +48,10 @@
    closest-matching tag onto the exec stack (or no-op if no boolean
    or no associations).
    "
+
   [i state]
   (let [iparts (string/split (name i) #"_")]
     (cond
-      ;; if it's of the form begin_tag_<number>: Do nothing
-      (= (first iparts) "begin")
-      state
-   
-      
       ;; if it's of the form tag_<type>_<number>: CREATE TAG/VALUE ASSOCIATION
       (= (first iparts) "tag") 
       (let [source-type (read-string (str ":" (nth iparts 1)))
@@ -87,23 +72,23 @@
       ;; if it's return_tag_<type>_<number>: Push
       ;; (item_from_<type>_stack tag_<type>_<number>) onto the return stack. Pop the
       ;; item if @global-pop-when-tagging
-      (and (= (first iparts) "return")
-           (= (second iparts) "tag"))
-      (let [source-type (read-string (str ":" (nth iparts 2)))
-            the-tag (read-string (nth iparts 3))
-            new-tag-instr (symbol (subs (name i) (count "return_")))]
-        (if (empty? (source-type state))
-          state
-          (let [item (list (top-item source-type state) new-tag-instr)]
-            ((if @global-pop-when-tagging pop-item (fn [type state] state))
+          (and (= (first iparts) "return")
+               (= (second iparts) "tag"))
+          (let [source-type (read-string (str ":" (nth iparts 2)))
+                the-tag (read-string (nth iparts 3))
+                new-tag-instr (symbol (subs (name i) (count "return_")))]
+            (if (empty? (source-type state))
+              state
+              (let [item (list (top-item source-type state) new-tag-instr)]
+                ((if @global-pop-when-tagging pop-item (fn [type state] state))
                  source-type
                  (push-item item :return state)))))
       ;; if we get here it must be one of the retrieval forms starting with "tagged_", so 
-      ;; we check to see if there are assocations and consider the cases if so
-      :else
-      (if (empty? (:tag state))
-        state ;; no-op if no associations
-        (cond ;; it's tagged_code_<number>
+      ;; we check to see if there are associations and consider the cases if so
+          :else
+          (if (empty? (:tag state))
+            state ;; no-op if no associations
+            (cond ;; it's tagged_code_<number>
               (= (nth iparts 1) "code") 
               (let [the-tag (read-string (nth iparts 2))]
                 (push-item (second (closest-association the-tag state)) :code state))
@@ -141,26 +126,6 @@
     (fn [] (symbol (str "untag_"
                         (str (lrand-int limit))))))
   ([] (untag-instruction-erc @global-tag-limit)))
-
-
-;; tagging code inside begin_tag_<number> ... end_tag
-
-(defn tagwrap-instruction-erc
-  "Returns a function which, when called on no arguments, returns a symbol of the form
-   begin_tag_<number> where number is in the range from 0 to the specified limit (exclusive)."
-  ([limit]
-    (fn [] (symbol (str "begin_tag_"
-                        (str (lrand-int limit))))))
-  ([] (tagwrap-instruction-erc @global-tag-limit)))
-
-(define-registered
-  end_tag
-  ^{:stack-types [:tag]}
-  (fn [state]
-      state))
-
-;;
-
   
 (defn tagged-instruction-erc
   "Returns a function which, when called on no arguments, returns a symbol of the form

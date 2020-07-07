@@ -10,10 +10,9 @@
 
 (def push-types '(:exec :code :integer :float :boolean :char :string :zip
                         :vector_integer :vector_float :vector_boolean :vector_string
-                        :input :output :auxiliary :tag :return :environment :genome :max-stack-depth :trace :exec_id :trace_id
+                        :input :output :auxiliary :tag :return :environment :genome
                         :gtm))
 ;; The list of stacks used by the Push interpreter
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Used by instructions to keep computed values within limits or when using random 
@@ -83,6 +82,11 @@
 (def selection-counts (atom {})) 
 ;; Used to store the number of selections for each individual, indexed by UUIDs
 
+(def preselection-counts (atom []))
+;; Used to store the numbers of individuals that survive preselection in each
+;; selection event in the current generation. Does not take into account
+;; one-individual-per-error-vector-for-lexicase.
+
 (def min-age (atom 0))
 (def max-age (atom 0))
 ;; Used for age-mediated-parent-selection
@@ -105,7 +109,7 @@
 (def global-atom-generators (atom ())) 
 ;; The instructions and literals that may be used in Push programs.
 
-(def global-max-points (atom 100))
+(def global-max-points (atom 100)) 
 ;; The maximum size of a Push program. Also, the maximum size of code that can appear on
 ;; the exec or code stacks.
 
@@ -155,8 +159,6 @@
 (def global-parent-selection (atom :lexicase)) 
 ;; The type of parent selection used
 
-(def global-calculate-mod-metrics (atom false))
-;; Whether or not to calculate mod metrics while running modularity metics (reuse and repetition)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; This atom is used to convey information to clojush.pushgp.visualize, but it cannot be 
 ;; defined there because it must always be available to clojush.pushgp.report, and we don't
@@ -164,11 +166,4 @@
 ;; will require quil.core, which will launch the quil sketch.
 
 (def viz-data-atom (atom {}))
-
-
-
-(def global-common-tagspace (atom {234 "()"}))
-;; An atom to hold the tagspace values from one individual to another and from one generation
-;;  to another.
-
 
