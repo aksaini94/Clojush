@@ -2,6 +2,8 @@
   (:use [clojush util random individual globals interpreter translate pushstate]
         [clojush.instructions tag gtm]
         [clojush.pushgp.selection.selection]
+        [clojush.pushgp.selection.lexicase]
+        [clojush.instructions.common]
         [clojure.math.numeric-tower])
   (:import (org.apache.commons.math3.stat.inference TTest))
   (:require [clojure.string :as string]))
@@ -605,12 +607,12 @@ given by uniform-deletion-rate.
 ;; uniform addition and deletion (UMAD)
 
 (defn uniform-addition-and-deletion
-  "Returns the individual after two passes of mutation. In the first pass, each element of 
+  "Returns the individual after two passes of mutation. In the first pass, each element of
   its genome may possibly be preceded or followed by a new gene. In the second pass, each
-  element of the genome may possibly be deleted. Probabilities are given by 
+  element of the genome may possibly be deleted. Probabilities are given by
   uniform-addition-and-deletion-rate.
   Works with Plushy genomes."
-  [ind {:keys [uniform-addition-and-deletion-rate maintain-ancestors atom-generators] 
+  [ind {:keys [uniform-addition-and-deletion-rate maintain-ancestors atom-generators]
         :as argmap}]
   (let [addition-rate (random-element-or-identity-if-not-a-collection uniform-addition-and-deletion-rate)
         deletion-rate (if (zero? addition-rate)
@@ -618,7 +620,7 @@ given by uniform-deletion-rate.
                         (/ 1 (+ (/ 1 addition-rate) 1)))
         after-addition (vec (apply concat
                                    (mapv #(if (< (lrand) addition-rate)
-                                            (lshuffle [% 
+                                            (lshuffle [%
                                                        (random-genome-gene
                                                          atom-generators argmap)])
                                             [%])
@@ -632,6 +634,169 @@ given by uniform-deletion-rate.
                      :ancestors (if maintain-ancestors
                                   (cons (:genome ind) (:ancestors ind))
                                   (:ancestors ind)))))
+
+
+(defn modified-uniform-addition-and-deletion
+  "Returns the individual after two passes of mutation. In the first pass, each element of
+  its genome may possibly be preceded or followed by a new gene. In the second pass, each
+  element of the genome may possibly be deleted. Probabilities are given by
+  uniform-addition-and-deletion-rate.
+  Works with Plushy genomes."
+  [ind {:keys [uniform-addition-and-deletion-rate add-instruction-from-other-rate maintain-ancestors atom-generators seniors population]
+        :as argmap}]
+  (let [addition-rate (random-element-or-identity-if-not-a-collection uniform-addition-and-deletion-rate)
+        add-instruction-from-other-rate (random-element-or-identity-if-not-a-collection add-instruction-from-other-rate)
+        deletion-rate (if (zero? addition-rate)
+                        0
+                        (/ 1 (+ (/ 1 addition-rate) 1)))
+        ;genetic-source (concat (apply concat (map #(get % :genome) population)) (list (fn [] (- (lrand-int 101) 50))) ) ;; Change the ERC. The present one is for LIZ
+        after-addition (vec (apply concat
+                                   (mapv #(if (< (lrand) addition-rate)
+                                            (lshuffle [%
+                                                       (if (< (lrand) add-instruction-from-other-rate)
+                                                         ;(rand-nth genetic-source)
+                                                         ;(rand-nth (apply concat seniors))
+                                                         ;(rand-nth (:genome (select population argmap)))
+                                                         (rand-nth (:genome (select-complimentary-mate ind population argmap)))
+                                                         (random-genome-gene atom-generators argmap))])
+                                            [%])
+                                         (:genome ind))))
+        new-genome (vec (filter identity
+                                (mapv #(if (< (lrand) deletion-rate) nil %)
+                                      after-addition)))]
+    (make-individual :genome new-genome
+                     :history (:history ind)
+                     :grain-size (compute-grain-size new-genome ind argmap)
+                     :ancestors (if maintain-ancestors
+                                  (cons (:genome ind) (:ancestors ind))
+                                  (:ancestors ind)))))
+
+(defn modified1-uniform-addition-and-deletion
+  "Returns the individual after two passes of mutation. In the first pass, each element of 
+  its genome may possibly be preceded or followed by a new gene. In the second pass, each
+  element of the genome may possibly be deleted. Probabilities are given by 
+  uniform-addition-and-deletion-rate.
+  Works with Plushy genomes."
+  [ind {:keys [uniform-addition-and-deletion-rate maintain-ancestors atom-generators] 
+        :as argmap}]
+  (let [addition-rate (random-element-or-identity-if-not-a-collection uniform-addition-and-deletion-rate)
+        deletion-rate (if (zero? addition-rate)
+                        0
+                        (/ 1 (+ (/ 1 addition-rate) 1)))
+        after-addition (vec (apply concat
+                                   (mapv #(if (< (lrand) addition-rate)
+                                            (let [gene (random-genome-gene atom-generators argmap)]
+                                              (if (and (.startsWith (str (:instruction gene)) "tag") (< (lrand) 0.5))
+                                                [%]
+                                                (lshuffle [% gene])))
+                                            [%])
+                                         (:genome ind))))
+        new-genome (vec (filter identity
+                                (mapv #(if (< (lrand) deletion-rate)
+                                         (if (and (.startsWith (str (:instruction %)) "tag") (< (lrand) 0.5))
+                                           %
+                                           nil)
+                                         %)
+                                      after-addition)))]
+    (make-individual :genome new-genome
+                     :history (:history ind)
+                     :grain-size (compute-grain-size new-genome ind argmap)
+                     :ancestors (if maintain-ancestors
+                                  (cons (:genome ind) (:ancestors ind))
+                                  (:ancestors ind)))))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tagged-segment-addition-and-deletion (TSAD)
+
+
+(defn partition-tagging-segments
+  "Partitions the given genome into different parts, where each part can either be a tagged segment or a regular one.
+  Works for Plushy genomes only."
+  [gen]
+  (loop [genome gen
+         new-genome []
+         incomplete-part [] ; keep the incomplete partition, to be added to new-genome
+         inside-module? false
+         opens-minus-closes 0] ;parentheses for the tagged segment
+    (if (empty? genome)
+      (filter #(not (empty? %)) (conj new-genome incomplete-part))
+      (if (not inside-module?)
+        (if (string/starts-with? (first genome)"tag_exec")
+          (recur (rest genome) (conj new-genome incomplete-part) (conj [] (first genome)) true (inc opens-minus-closes))
+          (recur (rest genome) new-genome (conj incomplete-part (first genome)) inside-module? opens-minus-closes))
+
+        (if (= (first genome) :close)
+          (if (= opens-minus-closes 1)
+            (recur (rest genome) (conj new-genome (conj incomplete-part (first genome))) [] false (dec opens-minus-closes))
+            (recur (rest genome) new-genome  (conj incomplete-part (first genome)) inside-module? (dec opens-minus-closes))
+            )
+
+          (recur (rest genome) new-genome  (conj incomplete-part (first genome)) inside-module? (+ opens-minus-closes (lookup-instruction-paren-groups (first genome)))))
+        )
+      )))
+
+
+(defn tagged-segment-addition-and-deletion
+  "Returns the individual after two passes of mutation. In the first pass, each tagged segment
+  may possibly be preceded or followed by a new tagged segment. In the second pass, each
+  tagged segment of the genome may possibly be deleted. Probabilities are given by
+  tagged-segment-addition-and-deletion-rate.
+  Works with Plushy genomes only."
+  [ind {:keys [tagged-segment-addition-and-deletion-rate maintain-ancestors population]
+        :as argmap}]
+  (let [addition-rate (random-element-or-identity-if-not-a-collection tagged-segment-addition-and-deletion-rate)
+        deletion-rate (if (zero? addition-rate)
+                        0
+                        (/ 1 (+ (/ 1 addition-rate) 1)))
+        segments (partition-tagging-segments (:genome ind))
+        after-addition (vec (apply concat
+                                   (mapv #(if (and (string/starts-with? (first %) "tag_exec") (< (rand) addition-rate))
+                                            (let [external-segments (partition-tagging-segments (:genome (rand-nth population)))
+                                                  external-tag-segments (filter (fn [x] (string/starts-with? (first x) "tag_exec")) external-segments )]
+                                              (if (empty? external-tag-segments) [%] (shuffle [% (rand-nth external-tag-segments)])))
+                                            [%])
+                                         segments)))
+        new-genome (vec (apply concat (vec (filter identity
+                                                   (mapv #(if (and (string/starts-with? (first %) "tag_exec") (< (rand) deletion-rate)) nil %)
+                                                         after-addition)))))
+        ]
+    (make-individual :genome new-genome
+                     :history (:history ind)
+                     :grain-size (compute-grain-size new-genome ind argmap)
+                     :ancestors (if maintain-ancestors
+                                  (cons (:genome ind) (:ancestors ind))
+                                  (:ancestors ind)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tagification
+
+
+(defn partition-uniformly
+  "Partition the genome into segments. For each instruction, (1-p-rate) is the probability that the instruction will start
+  a new segment. The more the value of p-rate, the longer the segments on average."
+  [genome p-rate]
+  (let [x (atom 0)]
+    (partition-by (fn [_] (if (< (rand) p-rate) @x (let [_ (swap! x inc)] @x)))
+                  genome))
+  )
+
+(defn uniform-tagification
+  [ind {:keys [uniform-segmenting-rate uniform-tagification-rate maintain-ancestors]
+        :as argmap}]
+  (let [partitioned (partition-uniformly (:genome ind) uniform-segmenting-rate)
+        new-genome (apply concat (vec (mapv #(if (< (rand) uniform-tagification-rate)
+                                               (let [tag (rand-int 1000)]
+                                                 (concat [{:close 0, :instruction (symbol (str "tag_exec_" (str tag)))}]
+                                                         (conj (vec (butlast %)) (update (last %) :close inc))
+                                                         [{:close 0, :instruction (symbol (str "tagged_" (str tag)))}]))
+                                               %)
+                                            partitioned)))]
+    (make-individual :genome new-genome
+                     :history (:history ind)
+                     :grain-size (compute-grain-size new-genome ind argmap)
+                     :ancestors (if maintain-ancestors
+                                  (cons (:genome ind) (:ancestors ind))
+                                  (:ancestors ind)))
+    ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; uniform combination

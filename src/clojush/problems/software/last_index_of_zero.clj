@@ -21,8 +21,9 @@
             ^{:generator-label "Random numbers in the range [-50,50]"}
             (fn [] (- (lrand-int 101) 50))
             ;;; end ERCs
-            ;(tag-instruction-erc [:integer :boolean :vector_integer :exec] 1000)
-            ;(tagged-instruction-erc 1000)
+            (tag-instruction-erc [:exec] 1000)
+            (tagged-instruction-erc 1000)
+            'integer_tagged_instruction
             ;;; end tag ERCs
             'in1
             ;;; end input instructions
@@ -165,7 +166,11 @@
    :population-size                    1000
    :max-generations                    300
    :parent-selection                   :lexicase
-   :genetic-operator-probabilities     {:uniform-addition-and-deletion 1}
+   :genetic-operator-probabilities     {:uniform-addition-and-deletion 0.5
+                                        :tagged-segment-addition-and-deletion 0.5}
+   :uniform-addition-and-deletion-rate 0.09
+   :add-instruction-from-other-rate 0.75
+   :tagged-segment-addition-and-deletion-rate 0.75
    ;:genetic-operator-probabilities {:alternation                     0.2
    ;:uniform-mutation                0.2
    ; :uniform-close-mutation          0.1
@@ -178,4 +183,7 @@
    :report-simplifications 0
    :final-report-simplifications 5000
    :max-error 1000000
+   :genome-representation :plushy
+   :tag-enrichment-types [:exec]
+   :tag-enrichment 5
    })

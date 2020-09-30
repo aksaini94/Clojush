@@ -15,19 +15,25 @@
         [clojure.math numeric-tower combinatorics]
         ))
 
+(def exec-reuse-instrs '(exec_dup, exec_dup_times, exec_dup_items, exec_yankdup, exec_do*range, exec_do*count,  exec_do*times, exec_while, exec_do*while, exec_s, exec_y, exec_do*vector_integer, exec_do*vector_float, exec_do*vector_boolean, exec_do*vector_string))
+
 ; Atom generators
 (def last-index-of-zero-atom-generators
   (concat (list
             ^{:generator-label "Random numbers in the range [-50,50]"}
             (fn [] (- (lrand-int 101) 50))
             ;;; end ERCs
-            (tag-instruction-erc [:exec] 1000)
-            (tagged-instruction-erc 1000)
+            (tag-instruction-erc [:exec] 3)
+            (tagged-instruction-erc 3)
+            'integer_tagged_instruction
             ;;; end tag ERCs
             'in1
             ;;; end input instructions
             )
-          (registered-for-stacks [:integer :boolean :vector_integer :exec])))
+          ;(registered-for-type "return_")
+          ;(remove (set exec-reuse-instrs) (registered-for-stacks [:integer :boolean :vector_integer :exec]))
+          (registered-for-stacks [:integer :boolean :vector_integer :exec])
+          ))
 
 ;; Define test cases
 (defn random-sequence-with-at-least-one-zero
@@ -85,7 +91,7 @@
      (the-actual-last-index-of-zero-error-function individual data-cases false))
     ([individual data-cases print-outputs]
       (let [behavior (atom '())
-            ;tagspace (atom '())
+            ;state-with-tagspace-filled (run-push (:program individual) (assoc (push-item '(exec_noop) :input (make-push-state)) :tag (:tagspace individual)))
             state-with-tagspace-filled (run-push (:program individual) (push-item '(exec_noop) :input (make-push-state)))
             errors (doall
                      (for [[input correct-output] (case data-cases
@@ -100,9 +106,6 @@
                            (println (format "Correct output: %2d | Program output: %s"
                                             correct-output
                                             (str result))))
-
-                         ;(reset! tagspace (:tag state-with-tagspace-filled))
-
                          ; Record the behavior
                          (swap! behavior conj result)
                          ; Error is absolute distance from correct index
@@ -112,7 +115,8 @@
                          )))]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors :tagspace (:tag state-with-tagspace-filled)))))))
+          (assoc individual :behaviors @behavior :errors errors :tagspace (:tag state-with-tagspace-filled)
+                            ))))))
 
 (defn get-last-index-of-zero-train-and-test
   "Returns the train and test cases."
@@ -169,20 +173,27 @@
    :population-size                    1000
    :max-generations                    300
    :parent-selection                   :lexicase
-   :genetic-operator-probabilities     {:uniform-addition-and-deletion 1}
+   :genetic-operator-probabilities     {:uniform-addition-and-deletion 1
+                                        ;:uniform-tagification 0.1
+                                        ;:uniform-tag-mutation 0.1
+                                        }
+   :uniform-addition-and-deletion-rate 0.09
+   :uniform-segmenting-rate 0.5
+   :uniform-tagification-rate 0.1
    ;:genetic-operator-probabilities {:alternation                     0.2
    ; :uniform-mutation                0.2
    ; :uniform-close-mutation          0.1
    ; [:alternation :uniform-mutation] 0.5}
    :alternation-rate 0.01
    :alignment-deviation 10
-   :uniform-mutation-rate 0.01
+   :uniform-mutation-rate 0.05                               ;temporarily changing it for uniform-tag-mutation
    :problem-specific-report last-index-of-zero-report
    :problem-specific-initial-report last-index-of-zero-initial-report
    :report-simplifications 0
    :final-report-simplifications 5000
    :max-error 1000000
-   :meta-error-categories [:tag0]
-   :tag-enrichment-types [:exec]
-   :tag-enrichment 10
+   ;:tagspace-inheritance true
+   ;:meta-error-categories [:tag0]
+   ;:tag-enrichment-types [:exec]
+   ;:tag-enrichment 5
    })

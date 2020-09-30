@@ -16,6 +16,8 @@
         clojure.math.numeric-tower)
     (:require [clojure.string :as string]))
 
+(def exec-reuse-instrs '(exec_dup, exec_dup_times, exec_dup_items, exec_yankdup, exec_do*range, exec_do*count,  exec_do*times, exec_while, exec_do*while, exec_s, exec_y, exec_do*vector_integer, exec_do*vector_float, exec_do*vector_boolean, exec_do*vector_string))
+
 (def scrabble-letter-values
   (let [scrabble-map {\a 1
                       \b 3
@@ -53,13 +55,16 @@
             scrabble-letter-values
             ;;; end constants
             ;;; end ERCs
-            (tag-instruction-erc [:string :char :integer :boolean :vector_integer :exec] 1000)
-            (tagged-instruction-erc 1000)
+            (tag-instruction-erc [:exec] 3)
+            (tagged-instruction-erc 3)
+            'integer_tagged_instruction
             ;;; end tag ERCs
             'in1
             ;;; end input instructions
             )
-          (registered-for-stacks [:string :char :integer :boolean :vector_integer :exec])))
+          ;(remove (set exec-reuse-instrs) (registered-for-stacks [:string :char :integer :boolean :vector_integer :exec]))
+          (registered-for-stacks [:string :char :integer :boolean :vector_integer :exec])
+          ))
 
 ;; Define test cases
 (defn scrabble-score-input
@@ -118,13 +123,14 @@
      (the-actual-scrabble-score-error-function individual data-cases false))
     ([individual data-cases print-outputs]
       (let [behavior (atom '())
+            state-with-tagspace-filled (run-push (:program individual) (push-item '(exec_noop) :input (make-push-state)))
             errors (doall
                      (for [[input1 correct-output] (case data-cases
                                                      :train train-cases
                                                      :test test-cases
                                                      data-cases)]
-                       (let [final-state (run-push (:program individual)
-                                                   (->> (make-push-state)
+                       (let [final-state (run-push '(tagged_0)
+                                                   (->> (assoc (make-push-state) :tag (:tag state-with-tagspace-filled))
                                                      (push-item input1 :input)))
                              result (stack-ref :integer 0 final-state)]
                          (when print-outputs
@@ -138,8 +144,8 @@
                          )))]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors)
-          )))))
+          (assoc individual :behaviors @behavior :errors errors :tagspace (:tag state-with-tagspace-filled)
+                            ))))))
 
 (defn get-scrabble-score-train-and-test
   "Returns the train and test cases."
@@ -197,14 +203,13 @@
    :population-size 1000
    :max-generations 300
    :parent-selection :lexicase
-   :genetic-operator-probabilities {:alternation 0.2
-                                    :uniform-mutation 0.2
-                                    :uniform-close-mutation 0.1
-                                    [:alternation :uniform-mutation] 0.5
-                                    }
+   :genetic-operator-probabilities     {:uniform-addition-and-deletion 1
+                                        ;:uniform-tag-mutation 0.1
+                                        }
+   :uniform-addition-and-deletion-rate 0.09
    :alternation-rate 0.01
    :alignment-deviation 10
-   :uniform-mutation-rate 0.01
+   :uniform-mutation-rate 0.05                               ;temporarily changing it for uniform-tag-mutation
    :problem-specific-report scrabble-score-report
    :problem-specific-initial-report scrabble-score-initial-report
    :report-simplifications 0

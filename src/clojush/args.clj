@@ -669,6 +669,20 @@
           ;; Number of simplification steps applied to a program before calculating mod metrics.
           ;; 0 implies simplification won't be carried out.
           ;; WARNING: Keep this value low as every individual in the population will be simplified for this many number of steps
+
+          :tagspace-inheritance false
+          ;; When true, the tagspace of parent is transferred to the child during breeding.
+
+          :uniform-tagification-rate 0.1
+          ;; During first phase of tagification, the genome is partitioned into segments. This rates is the probability
+          ;; of each segment getting tagged.
+
+          :add-instruction-from-other-rate 0
+          ;; The probability that a given addition during UMAD will happen using gene from genetic sources instead of
+          ;; atom generators. A value of 0 means regular UMAD.
+
+          :tagged-segment-addition-and-deletion-rate 0
+          ;; The rate used during tagged-segment-addition-and-deletion
                 
          )))
 

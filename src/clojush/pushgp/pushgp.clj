@@ -276,8 +276,8 @@
           (= outcome :continue) (let [next-novelty-archive
                                       (list-concat novelty-archive
                                                    (select-individuals-for-novelty-archive
-                                                    (map deref pop-agents)
-                                                    @push-argmap))]
+                                                     (map deref pop-agents)
+                                                     @push-argmap))]
                                   (when-let [del (:selection-delay @push-argmap)]
                                     (when-not (:use-single-thread @push-argmap (apply await pop-agents))) ;; SYNCHRONIZE
                                     (swap! delay-archive concat (map deref pop-agents))
@@ -292,13 +292,15 @@
                                       (when-not (:use-single-thread @push-argmap (apply await pop-agents))) ;; SYNCHRONIZE
                                       (reset! delay-archive [])))
                                   (timer @push-argmap :report)
+                                  ; (swap! push-argmap assoc :seniors (repeatedly 50 (fn []
+                                  ;                                                   (get (auto-simplify-plush (select (map #(deref %) pop-agents) @push-argmap) (:error-function @push-argmap) 25 0) :genome))))
                                   (println "\nProducing offspring...") (flush)
                                   (produce-new-offspring pop-agents
                                                          child-agents
                                                          rand-gens
                                                          (if (:selection-delay @push-argmap)
                                                            (assoc @push-argmap
-                                                                  :parent-selection :uniform)
+                                                             :parent-selection :uniform)
                                                            @push-argmap))
                                   (println "Installing next generation...") (flush)
                                   (install-next-generation pop-agents child-agents @push-argmap)

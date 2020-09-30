@@ -7,33 +7,36 @@
 ; A map of genetic operator keywords to maps containing the genetic operator
 ; functions and number of parents
 (def genetic-operators
-  {:reproduction {:fn reproduction :parents 1 :works-with-plushy true :works-with-plush true}
-   :alternation {:fn alternation :parents 2 :works-with-plushy true :works-with-plush true}
-   :two-point-crossover {:fn two-point-crossover :parents 2 :works-with-plushy true :works-with-plush true}
-   :uniform-crossover {:fn uniform-crossover :parents 2 :works-with-plushy true :works-with-plush true}
-   :uniform-mutation {:fn uniform-mutation :parents 1 :works-with-plushy true :works-with-plush true}
-   :uniform-instruction-mutation {:fn uniform-instruction-mutation :parents 1 :works-with-plush true}
-   :uniform-integer-mutation {:fn uniform-integer-mutation :parents 1 :works-with-plush true}
-   :uniform-float-mutation {:fn uniform-float-mutation :parents 1 :works-with-plush true}
-   :uniform-tag-mutation {:fn uniform-tag-mutation :parents 1 :works-with-plushy true :works-with-plush true}
-   :uniform-string-mutation {:fn uniform-string-mutation :parents 1 :works-with-plush true}
-   :uniform-boolean-mutation {:fn uniform-boolean-mutation :parents 1 :works-with-plush true}
-   :uniform-close-mutation {:fn uniform-close-mutation :parents 1 :works-with-plush true}
-   :uniform-silence-mutation {:fn uniform-silence-mutation :parents 1 :works-with-plush true}
-   :uniform-deletion {:fn uniform-deletion :parents 1 :works-with-plushy true :works-with-plush true}
-   :uniform-addition {:fn uniform-addition :parents 1 :works-with-plushy true :works-with-plush true}
-   :uniform-addition-and-deletion {:fn uniform-addition-and-deletion :parents 1 :works-with-plushy true :works-with-plush true}
-   :uniform-combination {:fn uniform-combination :parents 2 :works-with-plushy true :works-with-plush true}
-   :uniform-combination-and-deletion {:fn uniform-combination-and-deletion :parents 2 :works-with-plushy true :works-with-plush true}
-   :genesis {:fn genesis :parents 0 :works-with-plushy true :works-with-plush true} ;; the parent will be ignored
-   :make-next-operator-revertable {:fn nil :parents 0 :works-with-plushy true :works-with-plush true}
-   :autoconstruction {:fn autoconstruction :parents 2 :works-with-plush true}
-   :gene-selection {:fn gene-selection :parents 1 :works-with-plushy true :works-with-plush true}
-   :uniform-reordering {:fn uniform-reordering :parents 1 :works-with-plushy true :works-with-plush true}
-   :uniform-segment-reordering {:fn uniform-segment-reordering :parents 1 :works-with-plushy true :works-with-plush true}
-   :uniform-segment-transposition {:fn uniform-segment-transposition :parents 1 :works-with-plushy true :works-with-plush true}
-   :uniform-segment-duplication {:fn uniform-segment-duplication :parents 1 :works-with-plushy true :works-with-plush true}
-   :uniform-segment-deletion {:fn uniform-segment-deletion :parents 1 :works-with-plushy true :works-with-plush true}
+  {:reproduction                           {:fn reproduction :parents 1 :works-with-plushy true :works-with-plush true}
+   :alternation                            {:fn alternation :parents 2 :works-with-plushy true :works-with-plush true}
+   :two-point-crossover                    {:fn two-point-crossover :parents 2 :works-with-plushy true :works-with-plush true}
+   :uniform-crossover                      {:fn uniform-crossover :parents 2 :works-with-plushy true :works-with-plush true}
+   :uniform-mutation                       {:fn uniform-mutation :parents 1 :works-with-plushy true :works-with-plush true}
+   :uniform-instruction-mutation           {:fn uniform-instruction-mutation :parents 1 :works-with-plush true}
+   :uniform-integer-mutation               {:fn uniform-integer-mutation :parents 1 :works-with-plush true}
+   :uniform-float-mutation                 {:fn uniform-float-mutation :parents 1 :works-with-plush true}
+   :uniform-tag-mutation                   {:fn uniform-tag-mutation :parents 1 :works-with-plushy true :works-with-plush true}
+   :uniform-string-mutation                {:fn uniform-string-mutation :parents 1 :works-with-plush true}
+   :uniform-boolean-mutation               {:fn uniform-boolean-mutation :parents 1 :works-with-plush true}
+   :uniform-close-mutation                 {:fn uniform-close-mutation :parents 1 :works-with-plush true}
+   :uniform-silence-mutation               {:fn uniform-silence-mutation :parents 1 :works-with-plush true}
+   :uniform-deletion                       {:fn uniform-deletion :parents 1 :works-with-plushy true :works-with-plush true}
+   :uniform-addition                       {:fn uniform-addition :parents 1 :works-with-plushy true :works-with-plush true}
+   :uniform-tagification                   {:fn uniform-tagification :parents 1 :works-with-plushy false :works-with-plush true}
+   :modified-uniform-addition-and-deletion {:fn modified-uniform-addition-and-deletion :parents 1 :works-with-plushy false :works-with-plush true}
+   :tagged-segment-addition-and-deletion   {:fn tagged-segment-addition-and-deletion :parents 1 :works-with-plushy true :works-with-plush false}
+   :uniform-addition-and-deletion          {:fn uniform-addition-and-deletion :parents 1 :works-with-plushy true :works-with-plush true}
+   :uniform-combination                    {:fn uniform-combination :parents 2 :works-with-plushy true :works-with-plush true}
+   :uniform-combination-and-deletion       {:fn uniform-combination-and-deletion :parents 2 :works-with-plushy true :works-with-plush true}
+   :genesis                                {:fn genesis :parents 0 :works-with-plushy true :works-with-plush true} ;; the parent will be ignored
+   :make-next-operator-revertable          {:fn nil :parents 0 :works-with-plushy true :works-with-plush true}
+   :autoconstruction                       {:fn autoconstruction :parents 2 :works-with-plush true}
+   :gene-selection                         {:fn gene-selection :parents 1 :works-with-plushy true :works-with-plush true}
+   :uniform-reordering                     {:fn uniform-reordering :parents 1 :works-with-plushy true :works-with-plush true}
+   :uniform-segment-reordering             {:fn uniform-segment-reordering :parents 1 :works-with-plushy true :works-with-plush true}
+   :uniform-segment-transposition          {:fn uniform-segment-transposition :parents 1 :works-with-plushy true :works-with-plush true}
+   :uniform-segment-duplication            {:fn uniform-segment-duplication :parents 1 :works-with-plushy true :works-with-plush true}
+   :uniform-segment-deletion               {:fn uniform-segment-deletion :parents 1 :works-with-plushy true :works-with-plush true}
    })
 
 (defn revert-too-big-child
@@ -145,13 +148,14 @@
    even with a single operator by putting that operator in a vector."
   [operator population location rand-gen 
    {:keys [max-points genome-representation
-           track-instruction-maps] :as argmap}]
+           track-instruction-maps tagspace-inheritance] :as argmap}]
   (let [first-parent (if (= 0 (:parents (get genetic-operators operator)))
                        nil
                        (select population argmap))
         operator-vector (if (sequential? operator) operator (vector operator))
         child (perform-genetic-operator-list operator-vector first-parent
-                                             population location rand-gen argmap)]
+                                             population location rand-gen argmap)
+        child (if tagspace-inheritance (assoc child :tagspace (:tagspace first-parent)) child)]
     (cond->
         (assoc child :genetic-operators operator)
 

@@ -14,6 +14,7 @@
         clojush.instructions.tag
         [clojure.math numeric-tower combinatorics]
         ))
+(def exec-reuse-instrs '(exec_dup, exec_dup_times, exec_dup_items, exec_yankdup, exec_do*range, exec_do*count,  exec_do*times, exec_while, exec_do*while, exec_s, exec_y, exec_do*vector_integer, exec_do*vector_float, exec_do*vector_boolean, exec_do*vector_string))
 
 ; Atom generators
 (def count-odds-atom-generators
@@ -24,13 +25,17 @@
             ;;; end constants
             (fn [] (- (lrand-int 2001) 1000)) ;Integer ERC
             ;;; end ERCs
-            (tag-instruction-erc [:exec] 1000)
-            (tagged-instruction-erc 1000)
+            (tag-instruction-erc [:exec] 3)
+            (tagged-instruction-erc 3)
+            'integer_tagged_instruction
             ;;; end tag ERCs
             'in1
             ;;; end input instructions
             )
-          (registered-for-stacks [:integer :boolean :vector_integer :exec])))
+          ;(registered-for-type "return_")
+          ;(remove (set exec-reuse-instrs) (registered-for-stacks [:integer :boolean :vector_integer :exec]))
+          (registered-for-stacks [:integer :boolean :vector_integer :exec])
+          ))
 
 
 ;; Define test cases
@@ -83,19 +88,19 @@
      (the-actual-count-odds-error-function individual data-cases false))
     ([individual data-cases print-outputs]
       (let [behavior (atom '())
-            tagspace (atom '())
+            ;state-with-tagspace-filled (run-push (:program individual) (assoc (push-item '(exec_noop) :input (make-push-state)) :tag (:tagspace individual)))
+            state-with-tagspace-filled (run-push (:program individual) (push-item '(exec_noop) :input (make-push-state)))
             errors (doall
                      (for [[input1 correct-output] (case data-cases
                                                      :train train-cases
                                                      :test test-cases
                                                      data-cases)]
-                       (let [final-state (run-push (:program individual)
-                                                   (->> (make-push-state)
+                       (let [final-state (run-push '(tagged_0)
+                                                   (->> (assoc (make-push-state) :tag (:tag state-with-tagspace-filled))
                                                      (push-item input1 :input)))
                              result (top-item :integer final-state)]
                          (when print-outputs
                            (println (format "Correct output: %2d | Program output: %s" correct-output (str result))))
-
                          ; Record the behavior
                          (swap! behavior conj result)
                          ; Error is integer error
@@ -105,7 +110,8 @@
                          )))]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors))))))
+          (assoc individual :behaviors @behavior :errors errors :tagspace (:tag state-with-tagspace-filled)
+                            ))))))
 
 (defn get-count-odds-train-and-test
   "Returns the train and test cases."
@@ -153,6 +159,7 @@
 (def argmap
   {:error-function                     (make-count-odds-error-function-from-cases (first count-odds-train-and-test-cases)
                                                                                   (second count-odds-train-and-test-cases))
+   :training-cases (first count-odds-train-and-test-cases)
    :atom-generators                    count-odds-atom-generators
    :max-points                         2000
    :max-genome-size-in-initial-program 250
@@ -160,20 +167,28 @@
    :population-size                    1000
    :max-generations                    300
    :parent-selection                   :lexicase
-   :genetic-operator-probabilities     {:uniform-addition-and-deletion 1}
+   :genetic-operator-probabilities     {:uniform-addition-and-deletion 1
+                                        ;:uniform-tagification 0.1
+                                        ;:uniform-tag-mutation 0.1
+                                        }
+   :uniform-addition-and-deletion-rate 0.09
+   :uniform-segmenting-rate 0.5
+   :uniform-tagification-rate 0.1
    ;:genetic-operator-probabilities {:alternation                     0.2
    ;:uniform-mutation                0.2
    ;:uniform-close-mutation          0.1
    ;[:alternation :uniform-mutation] 0.5}
    :alternation-rate 0.01
    :alignment-deviation 10
-   :uniform-mutation-rate 0.01
+   :uniform-mutation-rate 0.05                               ;temporarily changing it for uniform-tag-mutation
    :problem-specific-report count-odds-report
    :problem-specific-initial-report count-odds-initial-report
    :report-simplifications 0
    :final-report-simplifications 5000
    :max-error 1000
-   :meta-error-categories [:tag0]
-   :tag-enrichment-types [:exec]
-   :tag-enrichment 25
+   ;:tagspace-inheritance true
+   ;:meta-error-categories [:tag0]
+   ;:tag-enrichment-types [:exec]
+   ;:tag-enrichment 5
+   ;:use-single-thread true
    })

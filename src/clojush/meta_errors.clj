@@ -43,20 +43,20 @@
 ;;(= cat :tag-usage) (vals (:stacks-info ind))
 ;; (= cat :max-stacks-depth) (vals (:stacks-info ind))
 
-(defn closest-association1
-  "Returns the key-val pair for the closest match to the given tag
-   in the given state."
-  [tag state]
-  (loop [associations (conj (vec (:tag state)) (first (:tag state)))] ;; conj does wrap
-    (if (or (empty? (rest associations))
-            (<= tag (ffirst associations)))
-      (first associations)
-      (recur (rest associations)))))
+; (defn closest-association1
+; "Returns the key-val pair for the closest match to the given tag
+;   in the given state. "
+; [tag state]
+; (loop [associations (conj (vec (:tag state)) (first (:tag state)))] ;; conj does wrap
+; (if (or (empty? (rest associations))
+;        (<= tag (ffirst associations)))
+;  (first associations)
+;  (recur (rest associations))) ) )
 
 
-(defn tag0-meta-error
-  [ind evaluated-population argmap]
-  (count-points (second (closest-association1 0 {:tag (:tagspace ind)}))))
+; (defn tag0-meta-error
+;  [ind evaluated-population argmap]
+;  (count-points (second (closest-association1 0 {:tag (:tagspace ind)}))))
 
 (defn size-meta-error
   [ind evaluated-population argmap]
@@ -112,13 +112,13 @@
     0))
 
 (defn novelty-meta-error
-  "Novelty was calculated earlier and stored in each individual.
-  Note that we need to invert novelty, since it is calculated as a value to maximize."
+  " Novelty was calculated earlier and stored in each individual.
+Note that we need to invert novelty, since it is calculated as a value to maximize. "
   [ind evaluated-population argmap]
   (/ 1 (inc (:novelty ind))))
 
 (defn novelty-by-case-meta-error
-  "Novelty-by-case was calculated earlier and stored in each individual."
+  " Novelty-by-case was calculated earlier and stored in each individual. "
   [ind evaluated-population argmap]
   (:novelty-by-case ind))
 
@@ -133,7 +133,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :gens-since-total-error-change"))
+        " :print-history must be true for :gens-since-total-error-change "))
     (let [hist (mapv (partial reduce +) (:history ind))]
       (if (or (empty? hist)
               (apply = hist))
@@ -145,7 +145,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :gens-since-error-change"))
+        " :print-history must be true for :gens-since-error-change "))
     (let [hist (:history ind)]
       (if (or (empty? hist)
               (apply = hist))
@@ -157,7 +157,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :no-recent-error-change"))
+        " :print-history must be true for :no-recent-error-change "))
     (let [hist (:history ind)
           limit (:error-change-recency-limit argmap)]
       (if (< (count hist) limit)
@@ -171,7 +171,7 @@
 ;  (if (not (:print-history argmap))
 ;    (throw
 ;     (Exception.
-;      ":print-history must be true for :lineage-redundancy"))
+;      " :print-history must be true for :lineage-redundancy "))
 ;    (let [hist (:history ind)]
 ;      (if (< (count hist) 2)
 ;        1/2
@@ -183,7 +183,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :lineage-redundancy"))
+        " :print-history must be true for :lineage-redundancy "))
     (let [hist (if (:lineage-redundancy-window argmap)
                  (take (:lineage-redundancy-window argmap) (:history ind))
                  (:history ind))]
@@ -196,7 +196,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :redundant-lineage"))
+        " :print-history must be true for :redundant-lineage "))
     (let [hist (:history ind)]
       (if (< (count hist) 2)
         0
@@ -211,7 +211,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :resilience"))
+        " :print-history must be true for :resilience "))
     (let [hist (take 5 (:history ind))]
       (if (< (count hist) 2)
         0
@@ -226,7 +226,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :stasis"))
+        " :print-history must be true for :stasis "))
     (let [hist (:history ind)]
       (if (< (count hist) 2)
         0
@@ -242,7 +242,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :case-stasis"))
+        " :print-history must be true for :case-stasis "))
     (if (empty? (rest (:history ind)))
       (vec (repeat (count (:errors ind)) 0))
       (vec (for [case-history (apply map list (:history ind))]
@@ -258,7 +258,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :non-improvement"))
+        " :print-history must be true for :non-improvement "))
     (let [hist (:history ind)]
       (if (< (count hist) 2)
         0
@@ -273,7 +273,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :repeating-lineage"))
+        " :print-history must be true for :repeating-lineage "))
     (let [hist (:history ind)]
       (if (< (count hist) 2)
         0
@@ -287,7 +287,7 @@
     (if (not (:print-history argmap))
       (throw
         (Exception.
-          ":print-history must be true for :gens-since-total-error-improvement"))
+          " :print-history must be true for :gens-since-total-error-improvement "))
       (let [diffs (mapv (fn [[a b]] (- a b))
                         (partition 2 1 (mapv (partial reduce +)
                                              (:history ind))))]
@@ -301,7 +301,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :total-error-improvement-ratio"))
+        " :print-history must be true for :total-error-improvement-ratio "))
     (let [diffs (mapv (fn [[a b]] (- a b))
                       (partition 2 1 (mapv (partial reduce +)
                                            (:history ind))))]
@@ -315,7 +315,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :total-error-new-best-ratio"))
+        " :print-history must be true for :total-error-new-best-ratio "))
     (let [hist (mapv (partial reduce +) (:history ind))]
       (if (empty? (rest hist))
         1000000
@@ -335,7 +335,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :discounted-total-error-new-best-ratio"))
+        " :print-history must be true for :discounted-total-error-new-best-ratio "))
     (let [hist (mapv (partial reduce +) (:history ind))]
       (if (empty? (rest hist))
         1000000
@@ -359,7 +359,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true, :discounted-total-error-improvement-ratio"))
+        " :print-history must be true, :discounted-total-error-improvement-ratio "))
     (if (empty? (rest (:history ind)))
       1000000
       (let [diffs (mapv (fn [[a b]] (- a b))
@@ -379,7 +379,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :case-stagnation"))
+        " :print-history must be true for :case-stagnation "))
     (if (empty? (rest (:history ind)))
       (vec (repeat (count (:errors ind)) 1000000))
       (vec (for [case-history (apply map list (:history ind))]
@@ -404,7 +404,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :case-gens-since-improvement"))
+        " :print-history must be true for :case-gens-since-improvement "))
     (let [huge 1000000]
       (if (empty? (rest (:history ind)))
         (vec (repeat (count (:errors ind)) huge))
@@ -425,7 +425,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :case-gens-since-change"))
+        " :print-history must be true for :case-gens-since-change "))
     (let [huge 1000000]
       (if (empty? (rest (:history ind)))
         (vec (repeat (count (:errors ind)) huge))
@@ -446,7 +446,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :gens-since-change-0-if-solved"))
+        " :print-history must be true for :gens-since-change-0-if-solved "))
     (let [huge 1000000]
       (if (empty? (rest (:history ind)))
         (vec (repeat (count (:errors ind)) huge))
@@ -484,7 +484,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :case-family-uniformity"))
+        " :print-history must be true for :case-family-uniformity "))
     (if (or (empty? (:parent-uuids ind))
             (empty? (rest (:history ind))))
       (vec (repeat (count (:errors ind)) 1))
@@ -515,7 +515,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :mom-doesnt-change-behavior"))
+        " :print-history must be true for :mom-doesnt-change-behavior "))
     (let [siblings (filter #(and (= (first (:parent-uuids ind))
                                     (first (:parent-uuids %)))
                                  (not (empty? (rest (:history %))))) ; new random sibs don't count
@@ -544,7 +544,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :case-appropriate-family-uniformity"))
+        " :print-history must be true for :case-appropriate-family-uniformity "))
     (if (or (empty? (:parent-uuids ind))
             (empty? (rest (:history ind))))
       (vec (repeat (count (:errors ind)) 1))
@@ -582,7 +582,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :case-appropriate-family-diversity"))
+        " :print-history must be true for :case-appropriate-family-diversity "))
     (if (or (empty? (:parent-uuids ind))
             (empty? (rest (:history ind))))
       (vec (repeat (count (:errors ind)) 1))
@@ -629,7 +629,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :case-family-non-improvement"))
+        " :print-history must be true for :case-family-non-improvement "))
     (if (or (empty? (:parent-uuids ind))
             (empty? (rest (:history ind))))
       (vec (repeat (count (:errors ind)) 1))
@@ -660,7 +660,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :case-family-non-improvement-or-uniformity"))
+        " :print-history must be true for :case-family-non-improvement-or-uniformity "))
     (if (or (empty? (:parent-uuids ind))
             (empty? (rest (:history ind))))
       (vec (repeat (count (:errors ind)) 1))
@@ -700,7 +700,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :case-family-certainty"))
+        " :print-history must be true for :case-family-certainty "))
     (if (or (empty? (:parent-uuids ind))
             (empty? (rest (:history ind))))
       (vec (repeat (count (:errors ind)) 1))
@@ -722,7 +722,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :family-uniformity"))
+        " :print-history must be true for :family-uniformity "))
     (if (or (empty? (:parent-uuids ind))
             (empty? (rest (:history ind))))
       1
@@ -742,7 +742,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :repeated-errors"))
+        " :print-history must be true for :repeated-errors "))
     (if (empty? (rest (:history ind)))
       (vec (repeat (count (:errors ind)) 2))
       (vec (for [case-index (range (count (:errors ind)))]
@@ -823,7 +823,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :case-family-variation"))
+        " :print-history must be true for :case-family-variation "))
     (if (or (empty? (:parent-uuids ind))
             (empty? (rest (:history ind))))
       (vec (repeat (count (:errors ind)) 1))
@@ -857,7 +857,7 @@
   (if (not (:print-history argmap))
     (throw
       (Exception.
-        ":print-history must be true for :washout-mother"))
+        " :print-history must be true for :washout-mother "))
     (if (or (empty? (:parent-uuids ind))
             (empty? (rest (:history ind))))
       (vec (repeat (count (:errors ind)) 1))

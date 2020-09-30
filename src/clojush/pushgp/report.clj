@@ -350,7 +350,7 @@
            print-csv-logs print-json-logs csv-log-filename json-log-filename
            log-fitnesses-for-all-cases json-log-program-strings
            print-edn-logs edn-keys edn-log-filename edn-additional-keys
-           visualize calculate-mod-metrics]
+           visualize calculate-mod-metrics tagspace-inheritance]
     :as argmap}]
   (r/generation-data! [:population]
     (map #(dissoc % :program) population))
@@ -424,6 +424,8 @@
     (r/generation-data! [:best :individual] (dissoc best :program))
     (println "Best genome:" (print-genome best argmap))
     (println "Best program:" (pr-str (not-lazy (:program best))))
+    ;(when tagspace-inheritance (println "Tagspace:" (pr-str (:tagspace best))))
+    (println "Tagspace:" (pr-str (:tagspace best)))
     (when calculate-mod-metrics
       (println "Reuse in Best Program:" (pr-str (:reuse-info best)))
       (println "Repetition in Best Program:" (pr-str (:repetition-info best))))

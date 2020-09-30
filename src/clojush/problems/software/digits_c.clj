@@ -29,6 +29,7 @@
             ;;; end ERCs
             (tag-instruction-erc [:exec] 1000)
             (tagged-instruction-erc 1000)
+            'integer_tagged_instruction
             ;;; end tag ERCs
             'in1
             ;;; end input instructions

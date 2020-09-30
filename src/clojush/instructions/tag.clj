@@ -52,17 +52,25 @@
   [i state]
   (let [iparts (string/split (name i) #"_")]
     (cond
-      ;; if it's of the form tag_<type>_<number>: CREATE TAG/VALUE ASSOCIATION
+      ;; if it's of the form tag_<type>_<number>_<max tag>: CREATE TAG/VALUE ASSOCIATION
       (= (first iparts) "tag") 
       (let [source-type (read-string (str ":" (nth iparts 1)))
-            the-tag (read-string (nth iparts 2))]
+            the-tag (read-string (nth iparts 2))
+            ;max-tag (read-string (nth iparts 3))
+            ]
         (if (empty? (source-type state))
           state
           ((if @global-pop-when-tagging pop-item (fn [type state] state))
                source-type
                (assoc state :tag (assoc (or (:tag state) (sorted-map))
                                    the-tag
-                                   (first (source-type state)))))))
+                                   ;(first (source-type state))
+                                   (let [code (first (source-type state))]
+                                     (if true               ;(< the-tag (/ max-tag 2)) ;for tags 0-floor(limit/2), normal tagging, for ceil(limit/2)-limit, tagging with environments
+                                       code
+                                       (list 'environment_begin code 'environment_end)
+                                       ))
+                                   )))))
       ;; if it's of the form untag_<number>: REMOVE TAG ASSOCIATION
       (= (first iparts) "untag")
       (if (empty? (:tag state))
@@ -116,7 +124,10 @@
     (fn [] (symbol (str "tag_"
                         (name (lrand-nth types))
                         "_"
-                        (str (lrand-int limit))))))
+                        (str (lrand-int limit))
+                        ;"_"
+                        ;(str limit)
+                        ))))
   ([types] (tag-instruction-erc types @global-tag-limit)))
   
 (defn untag-instruction-erc

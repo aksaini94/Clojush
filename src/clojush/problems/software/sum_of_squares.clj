@@ -23,8 +23,9 @@
             ;;; end constants
             (fn [] (- (lrand-int 201) 100)) ;Integer ERC [-100,100]
             ;;; end ERCs
-            (tag-instruction-erc [:integer :boolean :exec] 1000)
+            (tag-instruction-erc [:exec] 1000)
             (tagged-instruction-erc 1000)
+            'integer_tagged_instruction
             ;;; end tag ERCs
             'in1
             ;;; end input instructions
@@ -132,21 +133,23 @@
 
 ; Define the argmap
 (def argmap
-  {:error-function (make-sum-of-squares-error-function-from-cases (first sum-of-squares-train-and-test-cases)
-                                                                  (second sum-of-squares-train-and-test-cases))
-   :training-cases (first sum-of-squares-train-and-test-cases)
-   :atom-generators sum-of-squares-atom-generators
-   :max-points 1600
+  {:error-function                     (make-sum-of-squares-error-function-from-cases (first sum-of-squares-train-and-test-cases)
+                                                                                      (second sum-of-squares-train-and-test-cases))
+   :training-cases                     (first sum-of-squares-train-and-test-cases)
+   :atom-generators                    sum-of-squares-atom-generators
+   :max-points                         1600
    :max-genome-size-in-initial-program 200
-   :evalpush-limit 4000
-   :population-size 1000
-   :max-generations 300
-   :parent-selection :lexicase
-   :genetic-operator-probabilities {:alternation 0.2
-                                    :uniform-mutation 0.2
-                                    :uniform-close-mutation 0.1
-                                    [:alternation :uniform-mutation] 0.5
-                                    }
+   :evalpush-limit                     4000
+   :population-size                    1000
+   :max-generations                    300
+   :parent-selection                   :lexicase
+   :genetic-operator-probabilities     {:modified-uniform-addition-and-deletion 1}
+   :uniform-addition-and-deletion-rate 0.09
+   :add-instruction-from-other-rate    0.75
+   ;:genetic-operator-probabilities {:alternation                     0.2
+   ;:uniform-mutation                0.2
+   ;:uniform-close-mutation          0.1
+   ;[:alternation :uniform-mutation] 0.5}
    :alternation-rate 0.01
    :alignment-deviation 10
    :uniform-mutation-rate 0.01
