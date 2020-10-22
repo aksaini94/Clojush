@@ -25,8 +25,8 @@
             ;;; end constants
             (fn [] (- (lrand-int 2001) 1000)) ;Integer ERC
             ;;; end ERCs
-            (tag-instruction-erc [:exec] 3)
-            (tagged-instruction-erc 3)
+            (tag-instruction-erc [:exec] 10)
+            (tagged-instruction-erc 10)
             'integer_tagged_instruction
             ;;; end tag ERCs
             'in1
@@ -167,13 +167,10 @@
    :population-size                    1000
    :max-generations                    300
    :parent-selection                   :lexicase
-   :genetic-operator-probabilities     {:uniform-addition-and-deletion 1
-                                        ;:uniform-tagification 0.1
-                                        ;:uniform-tag-mutation 0.1
-                                        }
+   :genetic-operator-probabilities     {:uniform-addition-and-deletion 0.5
+                                        :tagged-segment-addition-and-deletion 0.5}
    :uniform-addition-and-deletion-rate 0.09
-   :uniform-segmenting-rate 0.5
-   :uniform-tagification-rate 0.1
+   :tagged-segment-addition-and-deletion-rate 0.25
    ;:genetic-operator-probabilities {:alternation                     0.2
    ;:uniform-mutation                0.2
    ;:uniform-close-mutation          0.1
@@ -186,9 +183,9 @@
    :report-simplifications 0
    :final-report-simplifications 5000
    :max-error 1000
-   ;:tagspace-inheritance true
-   ;:meta-error-categories [:tag0]
-   ;:tag-enrichment-types [:exec]
-   ;:tag-enrichment 5
-   ;:use-single-thread true
+   :genome-representation :plushy
+   :meta-error-categories [:tag-cross-reference :size]
+   ; filter by tag0 size (10) is off
+   :tag-enrichment-types [:exec]
+   :tag-enrichment 5
    })

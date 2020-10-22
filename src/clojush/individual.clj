@@ -5,15 +5,17 @@
 ;; Populations are vectors of agents with individuals as their states (along with error and
 ;; history information).
 
-(defrecord individual [genome program errors behaviors total-error normalized-error weighted-error
+(defrecord individual [genome program genome-library library errors behaviors total-error normalized-error weighted-error
                        novelty meta-errors history ancestors uuid parent-uuids genetic-operators
                        age grain-size is-random-replacement reuse-info repetition-info])
 
-(defn make-individual [& {:keys [genome program errors behaviors total-error normalized-error weighted-error
+(defn make-individual [& {:keys [genome program genome-library library errors behaviors total-error normalized-error weighted-error
                                  novelty meta-errors history ancestors uuid parent-uuids
                                  genetic-operators age grain-size is-random-replacement reuse-info repetition-info]
                           :or {genome nil
                                program nil
+                               genome-library nil
+                               library nil
                                errors nil
                                behaviors nil
                                total-error nil ;; a non-number is used to indicate no value
@@ -32,7 +34,7 @@
                                reuse-info nil
                                repetition-info nil
                                }}]
-  (individual. genome program errors behaviors total-error normalized-error weighted-error novelty
+  (individual. genome program genome-library library errors behaviors total-error normalized-error weighted-error novelty
                meta-errors history ancestors uuid parent-uuids genetic-operators age grain-size
                is-random-replacement reuse-info repetition-info))
 
@@ -46,7 +48,7 @@
 
 (defn individual-string [i]
   (cons 'individual.
-        (let [k '(:genome :program :errors :behaviors :total-error :normalized-error 
+        (let [k '(:genome :program :genome-library :library :errors :behaviors :total-error :normalized-error
                           :weighted-error :novelty :meta-errors :history :ancestors :uuid 
                           :parent-uuids :genetic-operators :age :grain-size 
                           :is-random-replacement :reuse-info :repetition-info)]

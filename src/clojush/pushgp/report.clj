@@ -425,6 +425,7 @@
     (println "Best genome:" (print-genome best argmap))
     (println "Best program:" (pr-str (not-lazy (:program best))))
     ;(when tagspace-inheritance (println "Tagspace:" (pr-str (:tagspace best))))
+    (println "Library:" (pr-str (:library best)))
     (println "Tagspace:" (pr-str (:tagspace best)))
     (when calculate-mod-metrics
       (println "Reuse in Best Program:" (pr-str (:reuse-info best)))

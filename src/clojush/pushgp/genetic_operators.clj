@@ -167,9 +167,19 @@
                  :plushy (random-plushy-genome
                           (* plushy-max-genome-size-modifier
                              max-genome-size-in-initial-program)
-                          atom-generators
-                          argmap))]
+                          (concat (list (tagged-instruction-erc 10) (tagged-instruction-erc 10)) atom-generators)
+                          argmap))
+        genome-library (case genome-representation
+                 :plush (random-plush-genome max-genome-size-in-initial-program
+                                             atom-generators
+                                             argmap)
+                 :plushy (random-plushy-genome
+                           (* plushy-max-genome-size-modifier
+                              max-genome-size-in-initial-program)
+                           (concat (list (tag-instruction-erc [:exec] 10) (tag-instruction-erc [:exec] 10)) atom-generators)
+                           argmap))]
     (make-individual :genome genome
+                     :genome-library genome-library
                      :history ()
                      :age 0
                      :genetic-operators :random
@@ -622,13 +632,32 @@ given by uniform-deletion-rate.
                                    (mapv #(if (< (lrand) addition-rate)
                                             (lshuffle [%
                                                        (random-genome-gene
-                                                         atom-generators argmap)])
+                                                         (concat (list (tagged-instruction-erc 10) (tagged-instruction-erc 10)) atom-generators)
+                                                         argmap)])
                                             [%])
                                          (:genome ind))))
         new-genome (vec (filter identity
                                 (mapv #(if (< (lrand) deletion-rate) nil %)
-                                      after-addition)))]
+                                      after-addition)))
+
+
+        ar-lib 0.05
+        dr-lib (/ 1 (+ (/ 1 ar-lib) 1))
+        after-addition-lib (vec (apply concat
+                                   (mapv #(if (< (lrand) ar-lib)
+                                            (lshuffle [%
+                                                       (random-genome-gene
+                                                         (concat (list (tag-instruction-erc [:exec] 10) (tag-instruction-erc [:exec] 10)) atom-generators)
+                                                         argmap)])
+                                            [%])
+                                         (:genome-library ind))))
+        new-genome-lib (vec (filter identity
+                                (mapv #(if (< (lrand) dr-lib) nil %)
+                                      after-addition-lib)))
+
+        ]
     (make-individual :genome new-genome
+                     :genome-library new-genome-lib
                      :history (:history ind)
                      :grain-size (compute-grain-size new-genome ind argmap)
                      :ancestors (if maintain-ancestors
@@ -741,24 +770,49 @@ given by uniform-deletion-rate.
   tagged segment of the genome may possibly be deleted. Probabilities are given by
   tagged-segment-addition-and-deletion-rate.
   Works with Plushy genomes only."
-  [ind {:keys [tagged-segment-addition-and-deletion-rate maintain-ancestors population]
+  [ind {:keys [tagged-segment-addition-and-deletion-rate uniform-addition-and-deletion-rate maintain-ancestors atom-generators population]
         :as argmap}]
   (let [addition-rate (random-element-or-identity-if-not-a-collection tagged-segment-addition-and-deletion-rate)
         deletion-rate (if (zero? addition-rate)
                         0
                         (/ 1 (+ (/ 1 addition-rate) 1)))
         segments (partition-tagging-segments (:genome ind))
-        after-addition (vec (apply concat
-                                   (mapv #(if (and (string/starts-with? (first %) "tag_exec") (< (rand) addition-rate))
-                                            (let [external-segments (partition-tagging-segments (:genome (rand-nth population)))
-                                                  external-tag-segments (filter (fn [x] (string/starts-with? (first x) "tag_exec")) external-segments )]
-                                              (if (empty? external-tag-segments) [%] (shuffle [% (rand-nth external-tag-segments)])))
-                                            [%])
-                                         segments)))
-        new-genome (vec (apply concat (vec (filter identity
-                                                   (mapv #(if (and (string/starts-with? (first %) "tag_exec") (< (rand) deletion-rate)) nil %)
-                                                         after-addition)))))
-        ]
+
+        after-addition-tsad (vec (apply concat
+                                        (mapv #(if (and (string/starts-with? (first %) "tag_exec") (< (rand) addition-rate))
+                                                 (let [external-segments (partition-tagging-segments (:genome (select-complimentary-mate ind population argmap)))
+                                                       external-tag-segments (filter (fn [x] (string/starts-with? (first x) "tag_exec")) external-segments)]
+                                                   (if (empty? external-tag-segments) [%] (shuffle [% (rand-nth external-tag-segments)])))
+                                                 [%])
+                                              segments)))
+
+
+        new-segments-tsad (filter identity
+                                  (mapv #(if (and (string/starts-with? (first %) "tag_exec") (< (rand) deletion-rate)) nil %)
+                                        after-addition-tsad))
+
+        new-genome (vec (apply concat new-segments-tsad))
+
+
+        ;modified-atom-generators (concat atom-generators
+        ;        (map (fn [x] (symbol (str "tagged_" (subs (str (first x)) 9)))) (filter (fn [x] (string/starts-with? (first x) "tag_exec")) new-segments-tsad)))
+
+        ;; UMAD
+        ;addition-rate-umad (random-element-or-identity-if-not-a-collection uniform-addition-and-deletion-rate)
+        ;deletion-rate-umad (if (zero? addition-rate-umad)
+        ; 0
+        ;  (/ 1 (+ (/ 1 addition-rate-umad) 1)))
+        ;after-addition (vec (apply concat
+        ; (mapv #(if (< (lrand) addition-rate-umad)
+        ; (lshuffle [%
+        ; (random-genome-gene
+        ;  modified-atom-generators argmap)])
+        ;[%])
+        ;      new-genome-tsad)))
+        ;new-genome (vec (filter identity
+        ; (mapv #(if (< (lrand) deletion-rate-umad) nil %)
+        ;      after-addition)))
+]
     (make-individual :genome new-genome
                      :history (:history ind)
                      :grain-size (compute-grain-size new-genome ind argmap)

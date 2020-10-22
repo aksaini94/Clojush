@@ -194,6 +194,11 @@
                                    :program
                                    (translate-plush-genome-to-push-program
                                     {:genome (translate-plushy-to-plush i)}
-                                    argmap))))
+                                    argmap)
+                                   :library
+                                   (translate-plush-genome-to-push-program
+                                     {:genome (translate-plushy-to-plush {:genome (:genome-library i)})}
+                                     argmap)
+                                   )))
               pop-agents))
   (when-not use-single-thread (apply await pop-agents))) ;; SYNCHRONIZE

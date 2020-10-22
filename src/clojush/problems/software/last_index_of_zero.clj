@@ -166,11 +166,10 @@
    :population-size                    1000
    :max-generations                    300
    :parent-selection                   :lexicase
-   :genetic-operator-probabilities     {:uniform-addition-and-deletion 0.5
-                                        :tagged-segment-addition-and-deletion 0.5}
+   :genetic-operator-probabilities     {:uniform-addition-and-deletion 0.75
+                                        :tagged-segment-addition-and-deletion 0.25}
    :uniform-addition-and-deletion-rate 0.09
-   :add-instruction-from-other-rate 0.75
-   :tagged-segment-addition-and-deletion-rate 0.75
+   :tagged-segment-addition-and-deletion-rate 0.5
    ;:genetic-operator-probabilities {:alternation                     0.2
    ;:uniform-mutation                0.2
    ; :uniform-close-mutation          0.1
@@ -185,5 +184,5 @@
    :max-error 1000000
    :genome-representation :plushy
    :tag-enrichment-types [:exec]
-   :tag-enrichment 5
+   :tag-enrichment 2
    })
