@@ -76,18 +76,6 @@
                            grain-size-limit))
                 pop)))))
 
-; (defn filter-by-design-values
-;  "Select the individuals having top x percent design values."
-;  [pop {:keys [filter-params population-size]}]
-; (if (not filter-params)
-;  pop
-;  (vec (take-last (int (* (first (:thresholds filter-params)) population-size)) (sort-by #(first (:reuse-info %)) pop)))) )
-
-(defn filter-by-tag0-size
-  "Only those individuals are allowed where size of tag0 segment is less than or equal to 10."
-  [pop]
-  (filterv #(<= (count-points (second (closest-association1 0 {:tag (:tagspace %)}))) 10) pop))
-
 (defn knock-off-chip-off-the-old-block
   "If (:knock-off-chip-off-the-old-block argmap) is true, then if any individual in
   pop has an error vector that is different from its mother's, then return pop without
@@ -175,7 +163,6 @@
   age-mediation, screening, selection method, and autoconstruction."
   [pop argmap]
   (-> pop
-      ;(filter-by-tag0-size)
       (nonempties-for-autoconstruction argmap)
       (age-mediate argmap)
       (screen argmap)

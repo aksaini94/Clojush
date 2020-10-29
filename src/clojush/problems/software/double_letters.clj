@@ -23,9 +23,9 @@
             \!
             ;;; end constants
             ;;; end ERCs
-            (tag-instruction-erc [:exec] 10)
-            (tagged-instruction-erc 10)
-            'integer_tagged_instruction
+            ;(tag-instruction-erc [:exec] 10)
+            ;(tagged-instruction-erc 10)
+            ;'integer_tagged_instruction
             ;;; end tag ERCs
             'in1
             ;;; end input instructions
@@ -89,14 +89,14 @@
      (the-actual-double-letters-error-function individual data-cases false))
     ([individual data-cases print-outputs]
       (let [behavior (atom '())
-            state-with-tagspace-filled (run-push (:program individual) (push-item '(exec_noop) :input (make-push-state)))
+            ;state-with-tagspace-filled (run-push (:program individual) (push-item '(exec_noop) :input (make-push-state)))
             errors (doall
                      (for [[input correct-output] (case data-cases
                                                     :train train-cases
                                                     :test test-cases
                                                     data-cases)]
-                       (let [final-state (run-push '(tagged_0)
-                                                   (->> (assoc (make-push-state) :tag (:tag state-with-tagspace-filled))
+                       (let [final-state (run-push (:program individual)
+                                                   (->> (assoc (make-push-state) :tag (:library individual))
                                                      (push-item input :input)
                                                      (push-item "" :output)))
                              printed-result (stack-ref :output 0 final-state)]
@@ -106,31 +106,10 @@
                          (swap! behavior conj printed-result)
                          ; Error is Levenshtein distance
                          (levenshtein-distance correct-output printed-result))))
-            modules-fitness (if (= (count (keys (:tag state-with-tagspace-filled))) 1)
-                              (assoc {} (first (keys (:tag state-with-tagspace-filled))) (repeat (count errors) 1))
-                              (loop [tags (keys (:tag state-with-tagspace-filled))
-                                     fitness {}]
-                                (if (empty? tags)
-                                  fitness
-                                  (let [new-errors (doall
-                                                     (for [[input correct-output] (case data-cases
-                                                                                    :train train-cases
-                                                                                    :test test-cases
-                                                                                    data-cases)]
-                                                       (let [final-state (run-push '(tagged_0)
-                                                                                   (->> (assoc (make-push-state) :tag (dissoc (:tag state-with-tagspace-filled) (first tags)))
-                                                                                        (push-item input :input)
-                                                                                        (push-item "" :output)))
-                                                             printed-result (stack-ref :output 0 final-state)]
-                                                         ; Error is Levenshtein distance
-                                                         (levenshtein-distance correct-output printed-result))))]
-                                    (recur (rest tags) (assoc fitness (first tags) (map - new-errors errors)))))
-                                ))
-
             ]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors :tagspace (merge-with cons (:tag state-with-tagspace-filled) modules-fitness) )
+          (assoc individual :behaviors @behavior :errors errors :tagspace (:library individual) )
           )))))
 
 (defn get-double-letters-train-and-test
@@ -189,8 +168,9 @@
    :population-size                           1000
    :max-generations                           300
    :parent-selection                          :lexicase
-   :genetic-operator-probabilities            {:uniform-addition-and-deletion        0.5
-                                               :tagged-segment-addition-and-deletion 0.5}
+   :genetic-operator-probabilities            {[:uniform-addition-and-deletion :module-replacement :module-unroll]  1}
+   :module-replacement-rate 0.25
+   :module-unroll-rate 0.25
    :uniform-addition-and-deletion-rate        0.09
    :tagged-segment-addition-and-deletion-rate 0.25
    ;:genetic-operator-probabilities
@@ -207,8 +187,5 @@
    :final-report-simplifications 5000
    :max-error 5000
    :genome-representation :plushy
-   :meta-error-categories [:tag-cross-reference :size]
-   ; filter by tag0 size (10) is off
-   :tag-enrichment-types [:exec]
-   :tag-enrichment 5
+   :meta-error-categories [:tag-usage :size]
    })

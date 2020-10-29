@@ -23,9 +23,9 @@
             ;;; end constants
             (fn [] (- (lrand-int 20001) 10000)) ;Integer ERC [-10000,10000]
             ;;; end ERCs
-            (tag-instruction-erc [:exec] 1000)
-            (tagged-instruction-erc 1000)
-            'integer_tagged_instruction
+            ;(tag-instruction-erc [:exec] 1000)
+            ;(tagged-instruction-erc 1000)
+            ;'integer_tagged_instruction
             ;;; end tag ERCs
             'in1
             ;;; end input instructions
@@ -69,13 +69,14 @@
      (the-actual-small-or-large-error-function individual data-cases false))
     ([individual data-cases print-outputs]
       (let [behavior (atom '())
+            state-with-tagspace-filled (run-push (:library individual) (push-item '(exec_noop) :input (make-push-state)))
             errors (doall
                      (for [[input1 correct-output] (case data-cases
                                                      :train train-cases
                                                      :test test-cases
                                                      data-cases)]
                        (let [final-state (run-push (:program individual)
-                                                   (->> (make-push-state)
+                                                   (->> (assoc (make-push-state) :tag (:tag state-with-tagspace-filled))
                                                      (push-item input1 :input)
                                                      (push-item "" :output)))
                              result (stack-ref :output 0 final-state)]
@@ -87,7 +88,7 @@
                          (levenshtein-distance correct-output result))))]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors)
+          (assoc individual :behaviors @behavior :errors errors :tagspace (:tag state-with-tagspace-filled))
           )))))
 
 (defn get-small-or-large-train-and-test
@@ -145,7 +146,7 @@
    :population-size                    1000
    :max-generations                    300
    :parent-selection                   :lexicase
-   :genetic-operator-probabilities     {:modified-uniform-addition-and-deletion 1}
+   :genetic-operator-probabilities     {:uniform-addition-and-deletion 1}
    :uniform-addition-and-deletion-rate 0.09
    :add-instruction-from-other-rate    0.95
    ;:genetic-operator-probabilities {:alternation                     0.2
@@ -160,4 +161,6 @@
    :report-simplifications 0
    :final-report-simplifications 5000
    :max-error 5000
+   :genome-representation :plushy
+   :meta-error-categories [:tag-usage :size]
    })

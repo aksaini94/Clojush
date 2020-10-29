@@ -91,7 +91,7 @@
      (the-actual-last-index-of-zero-error-function individual data-cases false))
     ([individual data-cases print-outputs]
       (let [behavior (atom '())
-            state-with-tagspace-filled (run-push (:library individual) (push-item '(exec_noop) :input (make-push-state)))
+            ;state-with-tagspace-filled (run-push (:library individual) (push-item '(exec_noop) :input (make-push-state)))
             errors (doall
                      (for [[input correct-output] (case data-cases
                                                     :train train-cases
@@ -99,7 +99,7 @@
                                                     data-cases)]
                        (let [final-state (run-push (:program individual)       ;'(tagged_0)
                                                    (push-item input :input
-                                                              (assoc (make-push-state) :tag (:tag state-with-tagspace-filled))))
+                                                              (assoc (make-push-state) :tag (:library individual))))
                              result (top-item :integer final-state)]
                          (when print-outputs
                            (println (format "Correct output: %2d | Program output: %s"
@@ -112,32 +112,10 @@
                            (abs (- result correct-output)) ; distance from correct integer
                            1000000) ; penalty for no return value
                          )))
-            modules-fitness (if true                            ;(= (count (keys (:tag state-with-tagspace-filled))) 1)
-                              (assoc {} (first (keys (:tag state-with-tagspace-filled))) (repeat (count errors) 1))
-                              (loop [tags (keys (:tag state-with-tagspace-filled))
-                                     fitness {}]
-                                (if (empty? tags)
-                                  fitness
-                                  (let [new-errors (doall
-                                                     (for [[input correct-output] (case data-cases
-                                                                                    :train train-cases
-                                                                                    :test test-cases
-                                                                                    data-cases)]
-                                                       (let [final-state (run-push '(tagged_0)
-                                                                                   (->> (assoc (make-push-state) :tag (dissoc (:tag state-with-tagspace-filled) (first tags)))
-                                                                                        (push-item input :input)))
-                                                             result (top-item :integer final-state)]
-                                                         ; Error is Levenshtein distance
-                                                         ; Error is absolute distance from correct index
-                                                         (if (number? result)
-                                                           (abs (- result correct-output)) ; distance from correct integer
-                                                           1000000) ; penalty for no return value
-                                                         )))]
-                                    (recur (rest tags) (assoc fitness (first tags) (map - new-errors errors)))))
-                                ))]
+            ]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors :tagspace (:tag state-with-tagspace-filled) ;(merge-with cons (:tag state-with-tagspace-filled) modules-fitness)
+          (assoc individual :behaviors @behavior :errors errors :tagspace (:library individual)
                             ))))))
 
 (defn get-last-index-of-zero-train-and-test
@@ -195,9 +173,10 @@
    :population-size                    1000
    :max-generations                    300
    :parent-selection                   :lexicase
-   :genetic-operator-probabilities     {:uniform-addition-and-deletion 1
-                                        ;:tagged-segment-addition-and-deletion 0.25
+   :genetic-operator-probabilities     {[:uniform-addition-and-deletion :module-replacement :module-unroll]  1
                                         }
+   :module-replacement-rate 0.25
+   :module-unroll-rate 0.25
    :uniform-addition-and-deletion-rate 0.09
    :tagged-segment-addition-and-deletion-rate 0.5
    ;:genetic-operator-probabilities {:alternation                     0.2
@@ -214,7 +193,4 @@
    :max-error 1000000
    :genome-representation :plushy
    :meta-error-categories [:tag-usage :size]
-   ; filter by tag0 size (10) is off
-   ;:tag-enrichment-types [:exec]
-   ;:tag-enrichment 2
    })

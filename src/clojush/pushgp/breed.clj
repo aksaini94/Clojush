@@ -25,6 +25,8 @@
    :uniform-tagification                   {:fn uniform-tagification :parents 1 :works-with-plushy false :works-with-plush true}
    :modified-uniform-addition-and-deletion {:fn modified-uniform-addition-and-deletion :parents 1 :works-with-plushy false :works-with-plush true}
    :tagged-segment-addition-and-deletion   {:fn tagged-segment-addition-and-deletion :parents 1 :works-with-plushy true :works-with-plush false}
+   :module-replacement {:fn module-replacement :parents 1 :works-with-plushy true :works-with-plush false}
+   :module-unroll {:fn module-unroll :parents 1 :works-with-plushy true :works-with-plush false}
    :uniform-addition-and-deletion          {:fn uniform-addition-and-deletion :parents 1 :works-with-plushy true :works-with-plush true}
    :uniform-combination                    {:fn uniform-combination :parents 2 :works-with-plushy true :works-with-plush true}
    :uniform-combination-and-deletion       {:fn uniform-combination-and-deletion :parents 2 :works-with-plushy true :works-with-plush true}
@@ -154,8 +156,7 @@
                        (select population argmap))
         operator-vector (if (sequential? operator) operator (vector operator))
         child (perform-genetic-operator-list operator-vector first-parent
-                                             population location rand-gen argmap)
-        child (if tagspace-inheritance (assoc child :tagspace (:tagspace first-parent)) child)]
+                                             population location rand-gen argmap)]
     (cond->
         (assoc child :genetic-operators operator)
 

@@ -173,11 +173,16 @@
                  :plush (random-plush-genome max-genome-size-in-initial-program
                                              atom-generators
                                              argmap)
-                 :plushy (random-plushy-genome
-                           (* plushy-max-genome-size-modifier
-                              max-genome-size-in-initial-program)
-                           (concat (list (tag-instruction-erc [:exec] 10) (tag-instruction-erc [:exec] 10)) atom-generators)
-                           argmap))]
+                 :plushy (loop [i 9
+                                lib {}]
+                           (if (< i 0)
+                             lib
+                             (recur (- i 1) (assoc lib i (random-plushy-genome
+                                                           (/ (* plushy-max-genome-size-modifier
+                                                                 max-genome-size-in-initial-program) 10) atom-generators
+                                                           argmap)))
+                             )
+                           ))]
     (make-individual :genome genome
                      :genome-library genome-library
                      :history ()
@@ -612,6 +617,55 @@ given by uniform-deletion-rate.
                      :ancestors (if maintain-ancestors
                                   (cons (:genome ind) (:ancestors ind))
                                   (:ancestors ind)))))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Genetic Operators on Library
+
+(defn module-replacement
+  "Go over all the modules. If any module is not being used, it is replaced with a certain probability."
+  [ind {:keys [module-replacement-rate maintain-ancestors atom-generators]
+        :as argmap}]
+  (let [modules-getting-used (map  #(subs % 7) (re-seq #"tagged_\d+" (str (:program ind))))
+        new-genome-library (loop [i 9
+                                  lib {}]
+                             (if (< i 0)
+                               lib
+                               (recur (- i 1) (assoc lib i (if (some #(= (str i) %) modules-getting-used)
+                                                      (i (:genome-library ind))
+                                                      (if (< (lrand) module-replacement-rate)
+                                                        ;;; a subsequence of random length of (:genome ind)
+                                                        (if (empty? (:genome ind)) []
+                                                          (rand-nth (partition-by (fn[_] (rand-nth [true false])) (:genome ind))))
+                                                        (get (:genome-library ind) i)
+                                                        ))
+                                                  ))))
+        ]
+    (make-individual :genome (:genome ind)
+                     :genome-library new-genome-library
+                     :history (:history ind)
+                     :grain-size (:grain-size ind)
+                     :ancestors (if maintain-ancestors
+                                  (cons (:genome ind) (:ancestors ind))
+                                  (:ancestors ind)))))
+
+
+(defn module-unroll
+  "Go over all the modules. IF any module is not being used, it is replaced with a certain probability."
+  [ind {:keys [module-unroll-rate maintain-ancestors atom-generators]
+        :as argmap}]
+  (let [new-genome (vec (apply concat
+                    (mapv #(if (and (.startsWith (str %) "tagged_") (< (lrand) module-unroll-rate))
+                             (get (:genome-library ind) (Integer. (re-find  #"\d+" (str %) )))
+                             [%])
+                          (:genome ind))))
+        ]
+    (make-individual :genome new-genome
+                     :genome-library (:genome-library ind)
+                     :history (:history ind)
+                     :grain-size (:grain-size ind)
+                     :ancestors (if maintain-ancestors
+                                  (cons (:genome ind) (:ancestors ind))
+                                  (:ancestors ind)))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; uniform addition and deletion (UMAD)
@@ -641,23 +695,22 @@ given by uniform-deletion-rate.
                                       after-addition)))
 
 
-        ar-lib 0.05
-        dr-lib (/ 1 (+ (/ 1 ar-lib) 1))
-        after-addition-lib (vec (apply concat
-                                   (mapv #(if (< (lrand) ar-lib)
-                                            (lshuffle [%
-                                                       (random-genome-gene
-                                                         (concat (list (tag-instruction-erc [:exec] 10) (tag-instruction-erc [:exec] 10)) atom-generators)
-                                                         argmap)])
-                                            [%])
-                                         (:genome-library ind))))
-        new-genome-lib (vec (filter identity
-                                (mapv #(if (< (lrand) dr-lib) nil %)
-                                      after-addition-lib)))
-
+        ;ar-lib 0.05
+        ;dr-lib (/ 1 (+ (/ 1 ar-lib) 1))
+        ;after-addition-lib (vec (apply concat
+        ; (mapv #(if (< (lrand) ar-lib)
+        ; (lshuffle [%
+        ; (random-genome-gene
+        ;  (concat (list (tag-instruction-erc [:exec] 10) (tag-instruction-erc [:exec] 10)) atom-generators)
+        ;  argmap)])
+        ;[%])
+        ;      (:genome-library ind))))
+        ;new-genome-lib (vec (filter identity
+        ; (mapv #(if (< (lrand) dr-lib) nil %)
+        ;      after-addition-lib)))
         ]
     (make-individual :genome new-genome
-                     :genome-library new-genome-lib
+                     :genome-library (:genome-library ind)
                      :history (:history ind)
                      :grain-size (compute-grain-size new-genome ind argmap)
                      :ancestors (if maintain-ancestors

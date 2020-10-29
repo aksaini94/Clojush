@@ -190,15 +190,20 @@
   [pop-agents {:keys [use-single-thread] :as argmap}]
   (dorun (map #((if use-single-thread swap! send)
                     %
-                    (fn [i] (assoc i
+                    (fn [ind] (assoc ind
                                    :program
                                    (translate-plush-genome-to-push-program
-                                    {:genome (translate-plushy-to-plush i)}
+                                    {:genome (translate-plushy-to-plush ind)}
                                     argmap)
                                    :library
-                                   (translate-plush-genome-to-push-program
-                                     {:genome (translate-plushy-to-plush {:genome (:genome-library i)})}
-                                     argmap)
+                                   (loop [i 9
+                                          lib {}]
+                                     (if (< i 0)
+                                       lib
+                                       (recur (- i 1) (assoc lib i (translate-plush-genome-to-push-program
+                                                                     {:genome (translate-plushy-to-plush {:genome (get (:genome-library ind) i) })}
+                                                                     argmap)))
+                                       ))
                                    )))
               pop-agents))
   (when-not use-single-thread (apply await pop-agents))) ;; SYNCHRONIZE
