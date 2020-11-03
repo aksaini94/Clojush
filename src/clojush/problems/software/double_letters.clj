@@ -170,7 +170,7 @@
    :parent-selection                          :lexicase
    :genetic-operator-probabilities            {[:uniform-addition-and-deletion :module-replacement :module-unroll]  1}
    :module-replacement-rate 0.25
-   :module-unroll-rate 0.25
+   :module-unroll-rate 0.1
    :uniform-addition-and-deletion-rate        0.09
    :tagged-segment-addition-and-deletion-rate 0.25
    ;:genetic-operator-probabilities

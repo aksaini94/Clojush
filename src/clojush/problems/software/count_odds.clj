@@ -25,8 +25,8 @@
             ;;; end constants
             (fn [] (- (lrand-int 2001) 1000)) ;Integer ERC
             ;;; end ERCs
-            (tag-instruction-erc [:exec] 10)
-            (tagged-instruction-erc 10)
+            ;(tag-instruction-erc [:exec] 10)
+            ;(tagged-instruction-erc 10)
             'integer_tagged_instruction
             ;;; end tag ERCs
             'in1
@@ -88,15 +88,14 @@
      (the-actual-count-odds-error-function individual data-cases false))
     ([individual data-cases print-outputs]
       (let [behavior (atom '())
-            ;state-with-tagspace-filled (run-push (:program individual) (assoc (push-item '(exec_noop) :input (make-push-state)) :tag (:tagspace individual)))
-            state-with-tagspace-filled (run-push (:program individual) (push-item '(exec_noop) :input (make-push-state)))
+            ;state-with-tagspace-filled (run-push (:program individual) (push-item '(exec_noop) :input (make-push-state)))
             errors (doall
                      (for [[input1 correct-output] (case data-cases
                                                      :train train-cases
                                                      :test test-cases
                                                      data-cases)]
-                       (let [final-state (run-push '(tagged_0)
-                                                   (->> (assoc (make-push-state) :tag (:tag state-with-tagspace-filled))
+                       (let [final-state (run-push (:program individual)
+                                                   (->> (assoc (make-push-state) :tag (:library individual))
                                                      (push-item input1 :input)))
                              result (top-item :integer final-state)]
                          (when print-outputs
@@ -110,7 +109,7 @@
                          )))]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors :tagspace (:tag state-with-tagspace-filled)
+          (assoc individual :behaviors @behavior :errors errors :tagspace (:library individual)
                             ))))))
 
 (defn get-count-odds-train-and-test
@@ -167,8 +166,9 @@
    :population-size                    1000
    :max-generations                    300
    :parent-selection                   :lexicase
-   :genetic-operator-probabilities     {:uniform-addition-and-deletion 0.5
-                                        :tagged-segment-addition-and-deletion 0.5}
+   :genetic-operator-probabilities     {[:uniform-addition-and-deletion :module-replacement :module-unroll]  1}
+   :module-replacement-rate 0.25
+   :module-unroll-rate 0.1
    :uniform-addition-and-deletion-rate 0.09
    :tagged-segment-addition-and-deletion-rate 0.25
    ;:genetic-operator-probabilities {:alternation                     0.2
@@ -184,8 +184,5 @@
    :final-report-simplifications 5000
    :max-error 1000
    :genome-representation :plushy
-   :meta-error-categories [:tag-cross-reference :size]
-   ; filter by tag0 size (10) is off
-   :tag-enrichment-types [:exec]
-   :tag-enrichment 5
+   :meta-error-categories [:tag-usage :size]
    })

@@ -69,14 +69,13 @@
      (the-actual-small-or-large-error-function individual data-cases false))
     ([individual data-cases print-outputs]
       (let [behavior (atom '())
-            state-with-tagspace-filled (run-push (:library individual) (push-item '(exec_noop) :input (make-push-state)))
             errors (doall
                      (for [[input1 correct-output] (case data-cases
                                                      :train train-cases
                                                      :test test-cases
                                                      data-cases)]
                        (let [final-state (run-push (:program individual)
-                                                   (->> (assoc (make-push-state) :tag (:tag state-with-tagspace-filled))
+                                                   (->> (assoc (make-push-state) :tag (:library individual))
                                                      (push-item input1 :input)
                                                      (push-item "" :output)))
                              result (stack-ref :output 0 final-state)]
@@ -88,7 +87,7 @@
                          (levenshtein-distance correct-output result))))]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors :tagspace (:tag state-with-tagspace-filled))
+          (assoc individual :behaviors @behavior :errors errors :tagspace (:library individual))
           )))))
 
 (defn get-small-or-large-train-and-test
@@ -146,7 +145,9 @@
    :population-size                    1000
    :max-generations                    300
    :parent-selection                   :lexicase
-   :genetic-operator-probabilities     {:uniform-addition-and-deletion 1}
+   :genetic-operator-probabilities     {[:uniform-addition-and-deletion :module-replacement :module-unroll]  1}
+   :module-replacement-rate 0.25
+   :module-unroll-rate 0.1
    :uniform-addition-and-deletion-rate 0.09
    :add-instruction-from-other-rate    0.95
    ;:genetic-operator-probabilities {:alternation                     0.2

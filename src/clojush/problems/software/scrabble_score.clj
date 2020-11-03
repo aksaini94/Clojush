@@ -55,14 +55,13 @@
             scrabble-letter-values
             ;;; end constants
             ;;; end ERCs
-            (tag-instruction-erc [:exec] 3)
-            (tagged-instruction-erc 3)
-            'integer_tagged_instruction
+            ;(tag-instruction-erc [:exec] 3)
+            ;(tagged-instruction-erc 3)
+            ;'integer_tagged_instruction
             ;;; end tag ERCs
             'in1
             ;;; end input instructions
             )
-          ;(remove (set exec-reuse-instrs) (registered-for-stacks [:string :char :integer :boolean :vector_integer :exec]))
           (registered-for-stacks [:string :char :integer :boolean :vector_integer :exec])
           ))
 
@@ -123,14 +122,13 @@
      (the-actual-scrabble-score-error-function individual data-cases false))
     ([individual data-cases print-outputs]
       (let [behavior (atom '())
-            state-with-tagspace-filled (run-push (:program individual) (push-item '(exec_noop) :input (make-push-state)))
             errors (doall
                      (for [[input1 correct-output] (case data-cases
                                                      :train train-cases
                                                      :test test-cases
                                                      data-cases)]
-                       (let [final-state (run-push '(tagged_0)
-                                                   (->> (assoc (make-push-state) :tag (:tag state-with-tagspace-filled))
+                       (let [final-state (run-push (:program individual)
+                                                   (->> (assoc (make-push-state) :tag (:library individual))
                                                      (push-item input1 :input)))
                              result (stack-ref :integer 0 final-state)]
                          (when print-outputs
@@ -144,7 +142,7 @@
                          )))]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors :tagspace (:tag state-with-tagspace-filled)
+          (assoc individual :behaviors @behavior :errors errors :tagspace (:library individual)
                             ))))))
 
 (defn get-scrabble-score-train-and-test
@@ -203,9 +201,9 @@
    :population-size 1000
    :max-generations 300
    :parent-selection :lexicase
-   :genetic-operator-probabilities     {:uniform-addition-and-deletion 1
-                                        ;:uniform-tag-mutation 0.1
-                                        }
+   :genetic-operator-probabilities     {[:uniform-addition-and-deletion :module-replacement :module-unroll]  1}
+   :module-replacement-rate 0.25
+   :module-unroll-rate 0.1
    :uniform-addition-and-deletion-rate 0.09
    :alternation-rate 0.01
    :alignment-deviation 10
@@ -215,4 +213,6 @@
    :report-simplifications 0
    :final-report-simplifications 5000
    :max-error 1000
+   :genome-representation :plushy
+   :meta-error-categories [:tag-usage :size]
    })
