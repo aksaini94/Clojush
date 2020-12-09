@@ -26,8 +26,8 @@
             ;;; end constants
             (fn [] (- (lrand-int 21) 10))
             ;;; end ERCs
-            (tag-instruction-erc [:integer :boolean :string :char :exec] 1000)
-            (tagged-instruction-erc 1000)
+            ;(tag-instruction-erc [:integer :boolean :string :char :exec] 1000)
+            ;(tagged-instruction-erc 1000)
             ;;; end tag ERCs
             'in1
             ;;; end input instructions
@@ -82,7 +82,7 @@
                                                      :test test-cases
                                                      data-cases)]
                        (let [final-state (run-push (:program individual)
-                                                   (->> (make-push-state)
+                                                   (->> (assoc (make-push-state) :tag (:library individual))
                                                         (push-item input1 :input)
                                                         (push-item "" :output)))
                              result (stack-ref :output 0 final-state)]
@@ -94,7 +94,7 @@
                          (levenshtein-distance correct-output result))))]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors))))))
+          (assoc individual :behaviors @behavior :errors errors :tagspace (:library individual)))))))
 
 (defn get-digits-train-and-test
   "Returns the train and test cases."
@@ -150,11 +150,10 @@
    :population-size 1000
    :max-generations 300
    :parent-selection :lexicase
-   :genetic-operator-probabilities {:alternation 0.2
-                                    :uniform-mutation 0.2
-                                    :uniform-close-mutation 0.1
-                                    [:alternation :uniform-mutation] 0.5
-                                    }
+   :genetic-operator-probabilities     {[:module-replacement :uniform-addition-and-deletion :module-unroll]  1}
+   :module-replacement-rate 0.5
+   :module-unroll-rate 0.1
+   :uniform-addition-and-deletion-rate 0.09
    :alternation-rate 0.01
    :alignment-deviation 10
    :uniform-mutation-rate 0.01
@@ -163,4 +162,7 @@
    :report-simplifications 0
    :final-report-simplifications 5000
    :max-error 5000
+   :genome-representation :plushy
+   :meta-error-categories [:tag-usage :size]
+   :multi-level-evolution true
    })

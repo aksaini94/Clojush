@@ -91,13 +91,12 @@
      (the-actual-last-index-of-zero-error-function individual data-cases false))
     ([individual data-cases print-outputs]
       (let [behavior (atom '())
-            ;state-with-tagspace-filled (run-push (:library individual) (push-item '(exec_noop) :input (make-push-state)))
             errors (doall
                      (for [[input correct-output] (case data-cases
                                                     :train train-cases
                                                     :test test-cases
                                                     data-cases)]
-                       (let [final-state (run-push (:program individual)       ;'(tagged_0)
+                       (let [final-state (run-push (:program individual)
                                                    (push-item input :input
                                                               (assoc (make-push-state) :tag (:library individual))))
                              result (top-item :integer final-state)]
@@ -173,8 +172,8 @@
    :population-size                    1000
    :max-generations                    300
    :parent-selection                   :lexicase
-   :genetic-operator-probabilities     {[:uniform-addition-and-deletion :module-replacement :module-unroll]  1}
-   :module-replacement-rate 0.25
+   :genetic-operator-probabilities     {[:module-replacement :uniform-addition-and-deletion :module-unroll]  1}
+   :module-replacement-rate 0.5
    :module-unroll-rate 0.1
    :uniform-addition-and-deletion-rate 0.09
    :tagged-segment-addition-and-deletion-rate 0.5
@@ -192,4 +191,5 @@
    :max-error 1000000
    :genome-representation :plushy
    :meta-error-categories [:tag-usage :size]
+   :multi-level-evolution true
    })

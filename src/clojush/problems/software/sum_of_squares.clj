@@ -23,9 +23,9 @@
             ;;; end constants
             (fn [] (- (lrand-int 201) 100)) ;Integer ERC [-100,100]
             ;;; end ERCs
-            (tag-instruction-erc [:exec] 1000)
-            (tagged-instruction-erc 1000)
-            'integer_tagged_instruction
+            ;(tag-instruction-erc [:exec] 1000)
+            ;(tagged-instruction-erc 1000)
+            ;'integer_tagged_instruction
             ;;; end tag ERCs
             'in1
             ;;; end input instructions
@@ -73,7 +73,7 @@
                                                      :test test-cases
                                                      data-cases)]
                        (let [final-state (run-push (:program individual)
-                                                   (->> (make-push-state)
+                                                   (->> (assoc (make-push-state) :tag (:library individual))
                                                      (push-item input1 :input)))
                              result (stack-ref :integer 0 final-state)]
                          (when print-outputs
@@ -87,7 +87,7 @@
                          )))]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors))))))
+          (assoc individual :behaviors @behavior :errors errors :tagspace (:library individual)))))))
 
 (defn get-sum-of-squares-train-and-test
   "Returns the train and test cases."
@@ -141,15 +141,13 @@
    :max-genome-size-in-initial-program 200
    :evalpush-limit                     4000
    :population-size                    1000
-   :max-generations                    300
-   :parent-selection                   :lexicase
-   :genetic-operator-probabilities     {:modified-uniform-addition-and-deletion 1}
+   :max-generations 1200
+   :parent-selection :downsampled-lexicase
+   :downsample-factor 0.25
+   :genetic-operator-probabilities     {[:uniform-addition-and-deletion :module-replacement :module-unroll]  1}
+   :module-replacement-rate 0.5
+   :module-unroll-rate 0.1
    :uniform-addition-and-deletion-rate 0.09
-   :add-instruction-from-other-rate    0.75
-   ;:genetic-operator-probabilities {:alternation                     0.2
-   ;:uniform-mutation                0.2
-   ;:uniform-close-mutation          0.1
-   ;[:alternation :uniform-mutation] 0.5}
    :alternation-rate 0.01
    :alignment-deviation 10
    :uniform-mutation-rate 0.01
@@ -158,4 +156,6 @@
    :report-simplifications 0
    :final-report-simplifications 5000
    :max-error 1000000000
+   :genome-representation :plushy
+   :meta-error-categories [:tag-usage :size]
    })

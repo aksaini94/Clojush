@@ -22,9 +22,9 @@
             ;;; end constants
             (fn [] (- (lrand-int 2001) 1000)) ;Integer ERC [-1000,1000]
             ;;; end ERCs
-            (tag-instruction-erc [:exec] 1000)
-            (tagged-instruction-erc 1000)
-            'integer_tagged_instruction
+            ;(tag-instruction-erc [:exec] 1000)
+            ;(tagged-instruction-erc 1000)
+            ;'integer_tagged_instruction
             ;;; end tag ERCs
             'in1
             'in2
@@ -91,7 +91,7 @@
                                                               :test test-cases
                                                               data-cases)]
                        (let [final-state (run-push (:program individual)
-                                                   (->> (make-push-state)
+                                                   (->> (assoc (make-push-state) :tag (:library individual))
                                                      (push-item input2 :input)
                                                      (push-item input1 :input)))
                              result (top-item :vector_integer final-state)]
@@ -110,7 +110,7 @@
                          )))]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors))))))
+          (assoc individual :behaviors @behavior :errors errors :tagspace (:library individual)))))))
 
 (defn get-vectors-summed-train-and-test
   "Returns the train and test cases."
@@ -166,7 +166,9 @@
    :population-size                    1000
    :max-generations                    300
    :parent-selection                   :lexicase
-   :genetic-operator-probabilities     {:modified-uniform-addition-and-deletion 1}
+   :genetic-operator-probabilities     {[:uniform-addition-and-deletion :module-replacement :module-unroll]  1}
+   :module-replacement-rate 0.25
+   :module-unroll-rate 0.1
    :uniform-addition-and-deletion-rate 0.09
    :add-instruction-from-other-rate    1.00
    ;:genetic-operator-probabilities
@@ -182,4 +184,6 @@
    :report-simplifications 0
    :final-report-simplifications 5000
    :max-error 1000000000
+   :genome-representation :plushy
+   :meta-error-categories [:tag-usage :size]
    })

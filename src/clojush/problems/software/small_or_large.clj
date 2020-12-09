@@ -164,4 +164,5 @@
    :max-error 5000
    :genome-representation :plushy
    :meta-error-categories [:tag-usage :size]
+   :multi-level-evolution true
    })

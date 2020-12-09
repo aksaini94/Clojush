@@ -6,7 +6,10 @@
         [clojush.instructions.common]
         [clojure.math.numeric-tower])
   (:import (org.apache.commons.math3.stat.inference TTest))
-  (:require [clojure.string :as string]))
+  (:import (org.apache.commons.math3.distribution PoissonDistribution))
+  (:require [clojure.string :as string]
+            [clojure.set :as st]
+            ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; local utilities
@@ -158,7 +161,7 @@
 (defn genesis
   "Ignores the provided parent and returns a new, random individual, with age 0.
   Works with Plushy genomes."
-  [{:keys [max-genome-size-in-initial-program atom-generators genome-representation]
+  [{:keys [max-genome-size-in-initial-program atom-generators genome-representation multi-level-evolution]
     :as argmap}]
   (let [genome (case genome-representation
                  :plush (random-plush-genome max-genome-size-in-initial-program
@@ -167,22 +170,25 @@
                  :plushy (random-plushy-genome
                           (* plushy-max-genome-size-modifier
                              max-genome-size-in-initial-program)
-                          (concat (list (tagged-instruction-erc 10) (tagged-instruction-erc 10)) atom-generators)
+                          (if multi-level-evolution
+                            (concat (list (tagged-instruction-erc 10) (tagged-instruction-erc 10)) atom-generators)
+                            atom-generators)
                           argmap))
-        genome-library (case genome-representation
-                 :plush (random-plush-genome max-genome-size-in-initial-program
-                                             atom-generators
-                                             argmap)
-                 :plushy (loop [i 9
-                                lib {}]
-                           (if (< i 0)
-                             lib
-                             (recur (- i 1) (assoc lib i (random-plushy-genome
-                                                           (/ (* plushy-max-genome-size-modifier
-                                                                 max-genome-size-in-initial-program) 10) atom-generators
-                                                           argmap)))
-                             )
-                           ))]
+        genome-library (if multi-level-evolution
+                         (case genome-representation
+                           :plush (random-plush-genome max-genome-size-in-initial-program
+                                                       atom-generators
+                                                       argmap)
+                           :plushy (loop [i 9
+                                          lib {}]
+                                     (if (< i 0)
+                                       lib
+                                       (recur (- i 1) (assoc lib i (random-plushy-genome
+                                                                     (/ (* plushy-max-genome-size-modifier
+                                                                           max-genome-size-in-initial-program) 10) atom-generators
+                                                                     argmap)))
+                                       )
+                                     ))) ]
     (make-individual :genome genome
                      :genome-library genome-library
                      :history ()
@@ -621,23 +627,59 @@ given by uniform-deletion-rate.
 ;; Genetic Operators on Library
 
 (defn module-replacement
-  "Go over all the modules. If any module is not being used, it is replaced with a certain probability."
-  [ind {:keys [module-replacement-rate maintain-ancestors atom-generators]
+  "Go over all the modules. Do UMAD with half and 2/3rd UMAD rate. If any module is not being used, it is replaced with a certain probability."
+  [ind {:keys [uniform-addition-and-deletion-rate module-replacement-rate maintain-ancestors atom-generators]
         :as argmap}]
-  (let [modules-getting-used (map  #(subs % 7) (re-seq #"tagged_\d+" (str (:program ind))))
-        new-genome-library (loop [i 9
-                                  lib {}]
-                             (if (< i 0)
-                               lib
-                               (recur (- i 1) (assoc lib i (if (some #(= (str i) %) modules-getting-used)
-                                                      (i (:genome-library ind))
-                                                      (if (< (lrand) module-replacement-rate)
-                                                        ;;; a subsequence of random length of (:genome ind)
-                                                        (if (empty? (:genome ind)) []
-                                                          (rand-nth (partition-by (fn[_] (rand-nth [true false])) (:genome ind))))
-                                                        (get (:genome-library ind) i)
-                                                        ))
-                                                  ))))
+  (let [modules-in-main-program (map #(Integer. (subs % 7)) (re-seq #"tagged_\d+" (str (:genome ind))))
+        modules-getting-used (loop [to-be-inspected modules-in-main-program
+                                    inspected '()]
+                               (if (empty? to-be-inspected)
+                                 inspected
+                                 (let [segment (get (:genome-library ind) (first to-be-inspected))
+                                       tags-in-segment (map #(Integer. (subs % 7)) (re-seq #"tagged_\d+" (str segment)))]
+                                   (recur (into '() (st/union (set (rest to-be-inspected)) (st/difference (set tags-in-segment) (set inspected)))) (cons (first to-be-inspected) inspected)))
+                                 ))
+
+        ar1 (/ uniform-addition-and-deletion-rate 2)
+        dr1(if (zero? ar1)
+             0
+             (/ 1 (+ (/ 1 ar1) 1)))
+
+        ar2 (/ (* uniform-addition-and-deletion-rate 2)  3)
+        dr2 (if (zero? ar2)
+             0
+             (/ 1 (+ (/ 1 ar2) 1)))
+
+        new-genome-umad (into {} (for [[k v] (:genome-library ind)] [k (let [ar (if (some #(= k %) modules-getting-used) ar1 ar2)
+                                                                             dr (if (some #(= k %) modules-getting-used) dr1 dr2)
+                                                                             module (if (empty? v)  [nil] v) ;; modified UMAD ; works with empty seq
+                                                                             after-add (vec (apply concat
+                                                                                                   (mapv #(if (< (lrand) ar)
+                                                                                                            (lshuffle [%
+                                                                                                                       (random-genome-gene
+                                                                                                                         (concat (list (tagged-instruction-erc 10) (tagged-instruction-erc 10)) atom-generators)
+                                                                                                                         argmap)])
+                                                                                                            [%])
+                                                                                                         module)))]
+                                                                         (vec (filter identity
+                                                                                      (mapv #(if (< (lrand) dr) nil %)
+                                                                                            after-add))))]))
+        new-genome-library (into {} (for [[k v] new-genome-umad] [k (if (some #(= k %) modules-getting-used)
+                                                                            v
+                                                                            (if (< (lrand) module-replacement-rate)
+                                                                              ;;; a subsequence of random length of (:genome ind)
+                                                                              ; (if (< (lrand) 0.25)
+                                                                              ;(get (:genome-library ind) (rand-nth (concat (range 0 i) (range (+ i 1) 10))))
+                                                                              ;(get (:genome-library (rand-nth population)) i)
+                                                                              ; otherwise select a random segment from the program
+                                                                              ;(if (empty? (:genome ind)) [] (rand-nth (partition-by (fn [_] (rand-nth [true false])) (:genome ind))))
+                                                                              ;)
+                                                                              (let [len (count (:genome ind))
+                                                                                    start (rand-int len)
+                                                                                    len-segment (.sample (PoissonDistribution. 4))]
+                                                                                (subvec (:genome ind) start (min (+ start len-segment) len) ))
+                                                                              v
+                                                                              ))]))
         ]
     (make-individual :genome (:genome ind)
                      :genome-library new-genome-library
@@ -650,16 +692,23 @@ given by uniform-deletion-rate.
 
 (defn module-unroll
   "Go over all the modules. IF any module is not being used, it is replaced with a certain probability."
-  [ind {:keys [module-unroll-rate maintain-ancestors atom-generators]
+  [ind {:keys [module-unroll-rate maintain-ancestors max-points atom-generators]
         :as argmap}]
   (let [new-genome (vec (apply concat
                     (mapv #(if (and (.startsWith (str %) "tagged_") (< (lrand) module-unroll-rate))
                              (get (:genome-library ind) (Integer. (re-find  #"\d+" (str %) )))
                              [%])
                           (:genome ind))))
+        new-genome-library (into {} (for [[tag module] (:genome-library ind)] [tag (let [modified-module (vec (apply concat
+                                                                                                                     (mapv #(if (and (.startsWith (str %) "tagged_") (< (lrand) module-unroll-rate))
+                                                                                                                              (get (:genome-library ind) (Integer. (re-find  #"\d+" (str %) )))
+                                                                                                                              [%])
+                                                                                                                           module)))]
+                                                                                     (if (> (count modified-module) (/ max-points 2)) module modified-module))
+                                                                               ]))
         ]
     (make-individual :genome new-genome
-                     :genome-library (:genome-library ind)
+                     :genome-library new-genome-library
                      :history (:history ind)
                      :grain-size (:grain-size ind)
                      :ancestors (if maintain-ancestors
@@ -676,7 +725,7 @@ given by uniform-deletion-rate.
   element of the genome may possibly be deleted. Probabilities are given by
   uniform-addition-and-deletion-rate.
   Works with Plushy genomes."
-  [ind {:keys [uniform-addition-and-deletion-rate maintain-ancestors atom-generators]
+  [ind {:keys [uniform-addition-and-deletion-rate maintain-ancestors atom-generators multi-level-evolution]
         :as argmap}]
   (let [addition-rate (random-element-or-identity-if-not-a-collection uniform-addition-and-deletion-rate)
         deletion-rate (if (zero? addition-rate)
@@ -686,28 +735,15 @@ given by uniform-deletion-rate.
                                    (mapv #(if (< (lrand) addition-rate)
                                             (lshuffle [%
                                                        (random-genome-gene
-                                                         (concat (list (tagged-instruction-erc 10) (tagged-instruction-erc 10)) atom-generators)
+                                                         (if multi-level-evolution
+                                                           (concat (list (tagged-instruction-erc 10) (tagged-instruction-erc 10)) atom-generators)
+                                                           atom-generators)
                                                          argmap)])
                                             [%])
                                          (:genome ind))))
         new-genome (vec (filter identity
                                 (mapv #(if (< (lrand) deletion-rate) nil %)
                                       after-addition)))
-
-
-        ;ar-lib 0.05
-        ;dr-lib (/ 1 (+ (/ 1 ar-lib) 1))
-        ;after-addition-lib (vec (apply concat
-        ; (mapv #(if (< (lrand) ar-lib)
-        ; (lshuffle [%
-        ; (random-genome-gene
-        ;  (concat (list (tag-instruction-erc [:exec] 10) (tag-instruction-erc [:exec] 10)) atom-generators)
-        ;  argmap)])
-        ;[%])
-        ;      (:genome-library ind))))
-        ;new-genome-lib (vec (filter identity
-        ; (mapv #(if (< (lrand) dr-lib) nil %)
-        ;      after-addition-lib)))
         ]
     (make-individual :genome new-genome
                      :genome-library (:genome-library ind)

@@ -24,8 +24,8 @@
 (def loop-atom-generators
   (concat (list
             ;;; end ERCs
-            (tag-instruction-erc [:integer :boolean :exec] 1000)
-            (tagged-instruction-erc 1000)
+            ;(tag-instruction-erc [:integer :boolean :exec] 1000)
+            ;(tagged-instruction-erc 1000)
             ;;; end tag ERCs
             'in1
             'in2
@@ -86,7 +86,7 @@
                                                                      :test test-cases
                                                                      data-cases)]
                        (let [final-state (run-push (:program individual)
-                                                   (->> (make-push-state)
+                                                   (->> (assoc (make-push-state) :tag (:library individual))
                                                      (push-item input3 :input)
                                                      (push-item input2 :input)
                                                      (push-item input1 :input)
@@ -100,7 +100,7 @@
                          (levenshtein-distance correct-output result))))]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors)
+          (assoc individual :behaviors @behavior :errors errors :tagspace (:library individual))
           )))))
 
 (defn get-for-loop-index-train-and-test
@@ -147,22 +147,26 @@
 
 ; Define the argmap
 (def argmap
-  {:error-function (make-for-loop-index-error-function-from-cases (first for-loop-index-train-and-test-cases)
-                                                                  (second for-loop-index-train-and-test-cases))
-   :training-cases (first for-loop-index-train-and-test-cases)
-   :sub-training-cases '()
-   :atom-generators loop-atom-generators
-   :max-points 1200
+  {:error-function                     (make-for-loop-index-error-function-from-cases (first for-loop-index-train-and-test-cases)
+                                                                                      (second for-loop-index-train-and-test-cases))
+   :training-cases                     (first for-loop-index-train-and-test-cases)
+   :sub-training-cases                 '()
+   :atom-generators                    loop-atom-generators
+   :max-points                         1200
    :max-genome-size-in-initial-program 150
-   :evalpush-limit 600
-   :population-size 1000
-   :max-generations 300
-   :parent-selection :lexicase
-   :genetic-operator-probabilities {:alternation 0.2
-                                    :uniform-mutation 0.2
-                                    :uniform-close-mutation 0.1
-                                    [:alternation :uniform-mutation] 0.5
-                                    }
+   :evalpush-limit                     600
+   :population-size                    1000
+   :max-generations                    300
+   :parent-selection                   :lexicase
+   :genetic-operator-probabilities     {[:uniform-addition-and-deletion :module-replacement :module-unroll]  1}
+   :module-replacement-rate 0.25
+   :module-unroll-rate 0.1
+   :uniform-addition-and-deletion-rate 0.09
+   ;:genetic-operator-probabilities
+   ; {:alternation                     0.2
+   ; :uniform-mutation                0.2
+   ; :uniform-close-mutation          0.1
+   ; [:alternation :uniform-mutation] 0.5}
    :alternation-rate 0.01
    :alignment-deviation 10
    :uniform-mutation-rate 0.01
@@ -171,4 +175,6 @@
    :report-simplifications 0
    :final-report-simplifications 5000
    :max-error 5000
+   :genome-representation :plushy
+   :meta-error-categories [:tag-usage :size]
    })

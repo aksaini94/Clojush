@@ -20,8 +20,8 @@
   (concat (list
             (fn [] (lrand-nth (list true false))) ;Boolean ERC
             ;;; end ERCs
-            (tag-instruction-erc [:integer :boolean :string :exec] 1000)
-            (tagged-instruction-erc 1000)
+            ;(tag-instruction-erc [:integer :boolean :string :exec] 1000)
+            ;(tagged-instruction-erc 1000)
             ;;; end tag ERCs
             'in1
             'in2
@@ -82,7 +82,7 @@
                                                                      :test test-cases
                                                                      data-cases)]
                        (let [final-state (run-push (:program individual)
-                                                   (->> (make-push-state)
+                                                   (->> (assoc (make-push-state) :tag (:library individual))
                                                      (push-item input3 :input)
                                                      (push-item input2 :input)
                                                      (push-item input1 :input)))
@@ -97,7 +97,7 @@
                            1))))]
         (if (= data-cases :test)
           (assoc individual :test-errors errors)
-          (assoc individual :behaviors @behavior :errors errors)
+          (assoc individual :behaviors @behavior :errors errors :tagspace (:library individual))
           )))))
 
 (defn get-compare-string-lengths-train-and-test
@@ -155,11 +155,10 @@
    :population-size 1000
    :max-generations 300
    :parent-selection :lexicase
-   :genetic-operator-probabilities {:alternation 0.2
-                                    :uniform-mutation 0.2
-                                    :uniform-close-mutation 0.1
-                                    [:alternation :uniform-mutation] 0.5
-                                    }
+   :genetic-operator-probabilities     {[:module-replacement :uniform-addition-and-deletion :module-unroll]  1}
+   :module-replacement-rate 0.5
+   :module-unroll-rate 0.1
+   :uniform-addition-and-deletion-rate 0.09
    :alternation-rate 0.01
    :alignment-deviation 10
    :uniform-mutation-rate 0.01
@@ -168,4 +167,7 @@
    :report-simplifications 0
    :final-report-simplifications 5000
    :max-error 1
+   :genome-representation :plushy
+   :meta-error-categories [:tag-usage :size]
+   :multi-level-evolution true
    })

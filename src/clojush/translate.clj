@@ -187,7 +187,7 @@
 
 (defn population-translate-plushy-to-push
   "Converts the population of Plushy genomes into Push programs."
-  [pop-agents {:keys [use-single-thread] :as argmap}]
+  [pop-agents {:keys [use-single-thread multi-level-evolution] :as argmap}]
   (dorun (map #((if use-single-thread swap! send)
                     %
                     (fn [ind] (assoc ind
@@ -196,14 +196,11 @@
                                     {:genome (translate-plushy-to-plush ind)}
                                     argmap)
                                    :library
-                                   (loop [i 9
-                                          lib {}]
-                                     (if (< i 0)
-                                       lib
-                                       (recur (- i 1) (assoc lib i (translate-plush-genome-to-push-program
-                                                                     {:genome (translate-plushy-to-plush {:genome (get (:genome-library ind) i) })}
-                                                                     argmap)))
-                                       ))
+                                   (if multi-level-evolution
+                                     (into {} (for [[tag module] (:genome-library ind)] [tag (translate-plush-genome-to-push-program
+                                                                                      {:genome (translate-plushy-to-plush {:genome module})}
+                                                                                      argmap)]))
+                                     )
                                    )))
               pop-agents))
   (when-not use-single-thread (apply await pop-agents))) ;; SYNCHRONIZE
